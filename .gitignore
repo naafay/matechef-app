@@ -1,0 +1,15 @@
+# Node / Expo
+node_modules/
+.expo/
+expo-debug.*
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+env/
+*.sqlite3
+
+# VSCode
+.vscode/

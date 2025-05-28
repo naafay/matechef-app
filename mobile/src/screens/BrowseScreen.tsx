@@ -1,5 +1,5 @@
 // BrowseScreen.tsx
-// Shows a list of chefs; tapping one navigates to that chef’s profile
+// Standalone list of chefs (navigate here with navigation.navigate('Profile',{chefId}))
 
 import React from 'react';
 import {
@@ -12,31 +12,27 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 
-// Props type for this screen’s navigation
+// Props for navigation
 type Props = NativeStackScreenProps<RootStackParamList, 'Browse'>;
 
-// Temporary dummy data until we hook up the backend
+// Dummy data until you fetch real chefs
 const CHEFS = [
-  { id: '1', name: 'Chef Alice' },
-  { id: '2', name: 'Chef Ben' },
-  { id: '3', name: 'Chef Carla' },
+  { id: 1, name: 'Chef Alice' },
+  { id: 2, name: 'Chef Ben' },
+  { id: 3, name: 'Chef Carla' },
 ];
 
 export default function BrowseScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      {/* Screen title */}
       <Text style={styles.title}>Browse by Chef</Text>
-
-      {/* List of chefs */}
       <FlatList
         data={CHEFS}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.item}
             onPress={() =>
-              // Navigate to Profile, passing the chef’s ID
               navigation.navigate('Profile', { chefId: item.id })
             }
           >
@@ -49,22 +45,18 @@ export default function BrowseScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, paddingTop: 48, backgroundColor: '#fff' },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    marginHorizontal: 16,
     marginBottom: 16,
   },
   item: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
-  itemText: {
-    fontSize: 18,
-  },
+  itemText: { fontSize: 18 },
 });

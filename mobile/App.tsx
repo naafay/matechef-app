@@ -1,41 +1,63 @@
 // App.tsx
-// Sets up the navigation stack for MateChef
+// Root app with a Bottom Tab Navigator (icons only, no labels) for MateChef
 
 import React from 'react';
-// Navigation container provides context & state for navigation
 import { NavigationContainer } from '@react-navigation/native';
-// Native stack navigator for simple stack-based transitions
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
-// Import all screens
-import HomeScreen from './src/screens/HomeScreen';
-import BrowseScreen from './src/screens/BrowseScreen';
-import ChefProfileScreen from './src/screens/ChefProfileScreen';
+// Import your screens
+import MapScreen from './src/screens/MapScreen';
+import FavoriteScreen from './src/screens/FavoriteScreen';
+import SearchScreen from './src/screens/SearchScreen';
+import OrdersScreen from './src/screens/OrdersScreen';
+import AccountScreen from './src/screens/AccountScreen';
 
-// Define the app’s route names and their params
-export type RootStackParamList = {
-  Home: undefined;           // initial landing page
-  Browse: undefined;         // browse list of chefs
-  Profile: { chefId: string };// profile view for a specific chef
-};
-
-// Instantiate the stack navigator
-const Stack = createNativeStackNavigator<RootStackParamList>();
+// Create the bottom tab navigator
+const Tab = createBottomTabNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerShown: false, // we’ll build our own headers later
-        }}
+      <Tab.Navigator
+        initialRouteName="Map"
+        screenOptions={({ route }) => ({
+          headerShown: false,           // hide header for all tabs
+          tabBarShowLabel: false,       // hide labels beneath icons
+          tabBarActiveTintColor: '#4CAF50', // Aussie green
+          tabBarInactiveTintColor: 'gray',  // inactive icon color
+          tabBarIcon: ({ color, size }) => {
+            // Choose an icon based on the route name
+            let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
+
+            switch (route.name) {
+              case 'Map':
+                iconName = 'map-outline';
+                break;
+              case 'Favorite':
+                iconName = 'heart-outline';
+                break;
+              case 'Search':
+                iconName = 'search-outline';
+                break;
+              case 'Orders':
+                iconName = 'list-outline';
+                break;
+              case 'Account':
+                iconName = 'person-outline';
+                break;
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
       >
-        {/* Register each route */}
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Browse" component={BrowseScreen} />
-        <Stack.Screen name="Profile" component={ChefProfileScreen} />
-      </Stack.Navigator>
+        <Tab.Screen name="Map" component={MapScreen} />
+        <Tab.Screen name="Favorite" component={FavoriteScreen} />
+        <Tab.Screen name="Search" component={SearchScreen} />
+        <Tab.Screen name="Orders" component={OrdersScreen} />
+        <Tab.Screen name="Account" component={AccountScreen} />
+      </Tab.Navigator>
     </NavigationContainer>
   );
 }

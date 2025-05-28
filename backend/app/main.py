@@ -1,4 +1,5 @@
 # backend/app/main.py
+
 from fastapi import FastAPI, HTTPException
 from sqlmodel import Session, select
 from .database import engine, init_db
@@ -14,26 +15,35 @@ def on_startup():
     """
     init_db()
     with Session(engine) as session:
-        # If no chefs exist, seed some demo data
-        first_chef = session.exec(select(Chef)).first()
-        if not first_chef:
+        # Only seed if no chefs exist yet
+        if session.exec(select(Chef)).first() is None:
+            # 1) Create chefs
             chef1 = Chef(name="Chef Alice", bio="Mediterranean specialist")
-            chef2 = Chef(name="Chef Ben", bio="Grill and BBQ expert")
+            chef2 = Chef(name="Chef Ben",   bio="Grill and BBQ expert")
             session.add_all([chef1, chef2])
             session.commit()
-            # Now add demo dishes
-            session.add_all([
-                Dish(name="Mediterranean Salad", price=12.99, chef_id=chef1.id),
-                Dish(name="Grilled Chicken",     price=15.49, chef_id=chef2.id),
-            ])
+
+            # 2) Seed multiple dishes per chef
+            dishes = [
+                # Chef Alice’s dishes
+                Dish(name="Mediterranean Salad",      price=12.99, chef_id=chef1.id),
+                Dish(name="Vegetarian Pasta",         price=11.50, chef_id=chef1.id),
+                Dish(name="Organic Green Smoothie",   price=8.00,  chef_id=chef1.id),
+                Dish(name="Falafel Bowl",             price=10.25, chef_id=chef1.id),
+
+                # Chef Ben’s dishes
+                Dish(name="Grilled Chicken",          price=15.49, chef_id=chef2.id),
+                Dish(name="Beef Tacos",               price=13.75, chef_id=chef2.id),
+                Dish(name="Gluten-Free Bread",        price=6.75,  chef_id=chef2.id),
+                Dish(name="Fish Tacos",               price=14.25, chef_id=chef2.id),
+            ]
+            session.add_all(dishes)
             session.commit()
 
 
 @app.get("/chefs/", response_model=list[Chef])
 def read_chefs():
-    """
-    List all chefs.
-    """
+    """List all chefs."""
     with Session(engine) as session:
         return session.exec(select(Chef)).all()
 
@@ -52,11 +62,9 @@ def read_dishes(filter: str = None):
 
 @app.get("/chefs/{chef_id}/dishes", response_model=list[Dish])
 def read_dishes_by_chef(chef_id: int):
-    """
-    List dishes for a specific chef.
-    """
+    """List dishes for a specific chef."""
     with Session(engine) as session:
         dishes = session.exec(select(Dish).where(Dish.chef_id == chef_id)).all()
-        if dishes is None:
+        if not dishes:
             raise HTTPException(status_code=404, detail="Chef not found")
         return dishes

@@ -1,6 +1,4 @@
 // mobile/src/screens/LoginScreen.tsx
-// Updated: “New user? Sign Up” now navigates to the Signup screen instead of showing an alert
-
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -14,13 +12,13 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
+import { Colors } from '../theme';
 
 type LoginNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);
   const navigation = useNavigation<LoginNavProp>();
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -32,7 +30,7 @@ export default function LoginScreen() {
     try {
       await login(username, password);
     } catch {
-      // login() already shows an alert on error
+      // login() shows alert on failure
     }
   };
 
@@ -42,6 +40,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Username or Email"
+        placeholderTextColor={Colors.textMuted}
         autoCapitalize="none"
         value={username}
         onChangeText={setUsername}
@@ -49,6 +48,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor={Colors.textMuted}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -66,25 +66,28 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    color: Colors.primary,
     marginBottom: 24,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#aaa',
+    borderColor: Colors.primary,
     borderRadius: 4,
     padding: 12,
     marginBottom: 16,
+    color: Colors.text,
+    backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 4,
     marginBottom: 12,
@@ -95,7 +98,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   link: {
-    color: '#4CAF50',
+    color: Colors.primary,
     textAlign: 'center',
     marginTop: 8,
   },

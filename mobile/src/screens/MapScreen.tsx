@@ -1,5 +1,4 @@
 // mobile/src/screens/MapScreen.tsx
-// MapScreen: tapping a marker opens a bottom info panel with dynamic height
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -13,102 +12,145 @@ import {
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
+import FilterMenu, { FilterOption } from '../components/FilterMenu';
 import { getChefs, Chef, getChefDishes } from '../api/chefs';
 import { Dish } from '../api/dishes';
+import mapStyle from '../theme/mapStyle.json';
+import { Colors } from '../theme';
 
 const { width, height } = Dimensions.get('window');
-const ASPECT_RATIO = width / height;
-const LATITUDE_DELTA = 0.05;
-const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
+const ASPECT_RATIO      = width / height;
+const LATITUDE_DELTA    = 0.05;
+const LONGITUDE_DELTA   = LATITUDE_DELTA * ASPECT_RATIO;
 
+// Melbourne CBD
 const INITIAL_REGION: Region = {
-  latitude: -37.8136,
-  longitude: 144.9631,
-  latitudeDelta: LATITUDE_DELTA,
+  latitude:       -37.8136,
+  longitude:      144.9631,
+  latitudeDelta:  LATITUDE_DELTA,
   longitudeDelta: LONGITUDE_DELTA,
 };
 
-// Demo coordinates for each chef
+// Demo coords per chef ID
 const LOCATIONS: Record<number, { latitude: number; longitude: number }> = {
   1: { latitude: -37.8136, longitude: 144.9631 },
   2: { latitude: -37.8044, longitude: 144.9632 },
 };
 
+// First-layer filters
+const FIRST_LAYER: FilterOption[] = [
+  { key: 'top',      label: 'Top Mates' },
+  { key: 'verified', label: 'Verified Mates' },
+  { key: 'kind',     label: 'Kind Bites' },
+  { key: 'ready',    label: 'Ready-to-go' },
+];
+
+// Marker images
+const GOLD_PIN  = require('../../assets/marker-gold.png');
+const GREEN_PIN = require('../../assets/marker-green.png');
+
 export default function MapScreen() {
   const navigation = useNavigation<any>();
 
-  const [chefs, setChefs]             = useState<Chef[]>([]);
-  const [dishCounts, setDishCounts]   = useState<Record<number, Dish[]>>({});
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
-  const [region, setRegion]           = useState<Region>(INITIAL_REGION);
-  const [selectedChef, setSelectedChef] = useState<Chef | null>(null);
+  const [firstFilter, setFirstFilter]       = useState<string>('top');
+  const [chefs, setChefs]                   = useState<Chef[]>([]);
+  const [dishCounts, setDishCounts]         = useState<Record<number, Dish[]>>({});
+  const [loading, setLoading]               = useState<boolean>(true);
+  const [error, setError]                   = useState<string | null>(null);
+  const [region, setRegion]                 = useState<Region>(INITIAL_REGION);
+  const [selectedChef, setSelectedChef]     = useState<Chef | null>(null);
+  const [selectedChefId, setSelectedChefId] = useState<number | null>(null);
 
-  // Load chefs + dishes once
+  // Load chefs + their dishes
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const apiChefs = await getChefs();
+        const cs = await getChefs();
         if (!mounted) return;
-        setChefs(apiChefs);
+        setChefs(cs);
 
         const counts: Record<number, Dish[]> = {};
         await Promise.all(
-          apiChefs.map(async (c) => {
-            counts[c.id] = await getChefDishes(c.id);
+          cs.map(async chef => {
+            counts[chef.id] = await getChefDishes(chef.id);
           })
         );
         if (mounted) setDishCounts(counts);
       } catch (e: any) {
         console.error('[MapScreen] loadData error', e);
-        if (mounted) setError(e.message || 'Failed to load map data');
+        if (mounted) setError(e.message || 'Failed to load data');
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  // Filter chefs by the visible map bounds
-  const visibleChefs = chefs.filter((chef) => {
+  // Filter logic for “ready-to-go”
+  const applyFirst = (chef: Chef) => {
+    if (firstFilter === 'ready') {
+      return (dishCounts[chef.id] || []).length > 0;
+    }
+    // stub for other filters: show all
+    return true;
+  };
+
+  // Which chefs to show on the map
+  const visibleChefs = chefs.filter(chef => {
     const loc = LOCATIONS[chef.id];
-    if (!loc) return false;
-    const latMin = region.latitude - region.latitudeDelta / 2;
-    const latMax = region.latitude + region.latitudeDelta / 2;
+    if (!loc || !applyFirst(chef)) return false;
+    const latMin = region.latitude  - region.latitudeDelta  / 2;
+    const latMax = region.latitude  + region.latitudeDelta  / 2;
     const lonMin = region.longitude - region.longitudeDelta / 2;
     const lonMax = region.longitude + region.longitudeDelta / 2;
     return (
-      loc.latitude >= latMin &&
-      loc.latitude <= latMax &&
+      loc.latitude  >= latMin &&
+      loc.latitude  <= latMax &&
       loc.longitude >= lonMin &&
       loc.longitude <= lonMax
     );
   });
 
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Plates Nearby</Text>
 
-      {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" />
-      ) : error ? (
+      <FilterMenu
+        options={FIRST_LAYER}
+        selectedKey={firstFilter}
+        onSelect={setFirstFilter}
+      />
+
+      {error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <MapView
           style={styles.map}
           initialRegion={INITIAL_REGION}
+          customMapStyle={mapStyle}
           onRegionChangeComplete={setRegion}
         >
-          {visibleChefs.map((chef) => {
-            const loc = LOCATIONS[chef.id];
+          {visibleChefs.map(chef => {
+            const loc = LOCATIONS[chef.id]!;
+            const isSelected = selectedChefId === chef.id;
             return (
               <Marker
                 key={chef.id}
                 coordinate={loc}
-                onPress={() => setSelectedChef(chef)}
+                image={isSelected ? GREEN_PIN : GOLD_PIN}
+                onPress={() => {
+                  setSelectedChef(chef);
+                  setSelectedChefId(chef.id);
+                }}
               />
             );
           })}
@@ -122,43 +164,46 @@ export default function MapScreen() {
             Dishes: {dishCounts[selectedChef.id]?.length ?? 0}
           </Text>
           {dishCounts[selectedChef.id]
-            ?.filter((d) => d.name.toLowerCase().includes('grilled'))
+            ?.filter(d => d.name.toLowerCase().includes('grilled'))
             .length > 0 && (
             <Text style={styles.panelText}>
               Ready-to-go:{' '}
               {
-                dishCounts[selectedChef.id].filter((d) =>
+                dishCounts[selectedChef.id].filter(d =>
                   d.name.toLowerCase().includes('grilled')
                 ).length
               }
             </Text>
           )}
           {dishCounts[selectedChef.id]
-            ?.filter((d) => d.price === 0)
+            ?.filter(d => d.price === 0)
             .length > 0 && (
             <Text style={styles.panelText}>
               Free:{' '}
               {
-                dishCounts[selectedChef.id].filter((d) => d.price === 0)
+                dishCounts[selectedChef.id].filter(d => d.price === 0)
                   .length
               }
             </Text>
           )}
+
           <View style={styles.panelButtons}>
             <TouchableOpacity
               style={styles.button}
               onPress={() => {
-                navigation.navigate('Profile', {
-                  chefId: selectedChef.id,
-                });
+                navigation.navigate('Profile', { chefId: selectedChef.id });
                 setSelectedChef(null);
+                setSelectedChefId(null);
               }}
             >
               <Text style={styles.buttonText}>View Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, styles.closeButton]}
-              onPress={() => setSelectedChef(null)}
+              onPress={() => {
+                setSelectedChef(null);
+                setSelectedChefId(null);
+              }}
             >
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
@@ -172,17 +217,31 @@ export default function MapScreen() {
 const PANEL_MAX_HEIGHT = height * 0.5;
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginHorizontal: 16,
     marginTop: Platform.OS === 'ios' ? 60 : 40,
     marginBottom: 8,
+    color: Colors.primary,
   },
-  loader: { textAlign: 'center', marginTop: 20, color: '#555' },
-  errorText: { textAlign: 'center', marginTop: 20, color: 'red' },
-  map: { flex: 1 },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  map: {
+    flex: 1,
+  },
+  errorText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: Colors.danger,
+  },
   panel: {
     position: 'absolute',
     bottom: 0,
@@ -191,20 +250,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: Colors.textMuted,
     maxHeight: PANEL_MAX_HEIGHT,
   },
-  panelTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
-  panelText: { fontSize: 16, marginBottom: 4 },
-  panelButtons: { flexDirection: 'row', marginTop: 8 },
+  panelTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: Colors.primary,
+  },
+  panelText: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: Colors.text,
+  },
+  panelButtons: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
   button: {
     flex: 1,
-    backgroundColor: '#4CAF50',
+    backgroundColor: Colors.primary,
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 4,
     alignItems: 'center',
   },
-  closeButton: { backgroundColor: '#999' },
-  buttonText: { color: '#fff', fontSize: 16 },
+  closeButton: {
+    backgroundColor: Colors.textMuted,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
 });

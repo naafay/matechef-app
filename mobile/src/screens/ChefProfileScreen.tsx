@@ -1,163 +1,145 @@
 // mobile/src/screens/ChefProfileScreen.tsx
-// Displays chef details and navigates into the Search tab pre-filtered to this chef
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
 import { getChefs, getChefDishes, Chef } from '../api/chefs';
 import { Dish } from '../api/dishes';
-import { RootStackParamList } from '../../App';
+import { addFavorite, removeFavorite } from '../api/user';
+import { getAuthHeaders } from '../api/authHeaders';
+import { API_BASE_URL } from '../api/config';
+import { AuthContext } from '../context/AuthContext';
+import { Colors } from '../theme';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
+type ProfileRoute = RouteProp<RootStackParamList, 'Profile'>;
+type NavProp      = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
-export default function ChefProfileScreen({ route }: Props) {
-  const { chefId } = route.params;
-  const navigation = useNavigation<Props['navigation']>();
+export default function ChefProfileScreen() {
+  const route = useRoute<ProfileRoute>();
+  const navigation = useNavigation<NavProp>();
+  const { token } = useContext(AuthContext);
+  const chefId = route.params.chefId;
 
-  const [chef, setChef] = useState<Chef | null>(null);
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [chef, setChef]         = useState<Chef | null>(null);
+  const [dishes, setDishes]     = useState<Dish[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    let isActive = true;
-    async function load() {
+    let m = true;
+    (async () => {
       try {
-        setLoading(true);
-        const all = await getChefs();
-        const found = all.find((c) => c.id === chefId);
+        const headers = await getAuthHeaders();
+        const meRes = await fetch(`${API_BASE_URL}/users/me`, { headers });
+        if (!meRes.ok) throw new Error('Fetch user failed');
+        const me = await meRes.json();
+        if (m) setIsFavorite(me.favorites.includes(chefId));
+
+        const allChefs = await getChefs();
+        const found = allChefs.find(c => c.id === chefId);
         if (!found) throw new Error('Chef not found');
-        const chefDishes = await getChefDishes(chefId);
-        if (isActive) {
+        const chefDs = await getChefDishes(chefId);
+
+        if (m) {
           setChef(found);
-          setDishes(chefDishes);
+          setDishes(chefDs);
         }
       } catch (e: any) {
-        if (isActive) setError(e.message);
+        Alert.alert('Error', e.message);
       } finally {
-        if (isActive) setLoading(false);
+        if (m) setLoading(false);
       }
-    }
-    load();
-    return () => {
-      isActive = false;
-    };
+    })();
+    return () => { m = false; };
   }, [chefId]);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-  if (error || !chef) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Error: {error ?? 'Chef not found'}</Text>
-      </View>
-    );
+  const toggleFavorite = async () => {
+    try {
+      if (isFavorite) {
+        await removeFavorite(chefId);
+      } else {
+        await addFavorite(chefId);
+      }
+      setIsFavorite(!isFavorite);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  if (loading || !chef) {
+    return <ActivityIndicator style={styles.loader} size="large" />;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.name}>{chef.name}</Text>
-      {chef.bio && <Text style={styles.bio}>{chef.bio}</Text>}
+      <View style={styles.header}>
+        <Text style={styles.name}>{chef.name}</Text>
+        <TouchableOpacity onPress={toggleFavorite}>
+          <Ionicons
+            name={isFavorite ? 'star' : 'star-outline'}
+            size={28}
+            color={isFavorite ? Colors.accent : Colors.textMuted}
+          />
+        </TouchableOpacity>
+      </View>
+      {chef.bio ? <Text style={styles.bio}>{chef.bio}</Text> : null}
 
-      <Text style={styles.sectionTitle}>Dishes by {chef.name}</Text>
-      {dishes.length === 0 ? (
-        <Text style={styles.empty}>No dishes available.</Text>
-      ) : (
-        <FlatList
-          data={dishes}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.dishItem}>
-              <Text style={styles.dishName}>{item.name}</Text>
-              <Text style={styles.dishPrice}>${item.price.toFixed(2)}</Text>
-            </View>
-          )}
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.orderButton}
-        onPress={() =>
-          // Jump into the Main (tabs) navigator, opening the Search tab
-          navigation.navigate('Main', {
-            screen: 'Search',
-            params: { chefId },
-          })
-        }
-      >
-        <Text style={styles.orderText}>Order from {chef.name}</Text>
-      </TouchableOpacity>
+      <Text style={styles.sectionTitle}>Dishes</Text>
+      <FlatList
+        data={dishes}
+        keyExtractor={d => d.id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.dishItem}
+            onPress={() => navigation.navigate('DishDetail', { dish: item })}
+          >
+            <Text style={styles.dishName}>{item.name}</Text>
+            <Text style={styles.dishPrice}>${item.price.toFixed(2)}</Text>
+          </TouchableOpacity>
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 48,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  error: { color: 'red' },
-
-  name: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  bio: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  empty: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 16,
-  },
-  dishItem: {
+  container:    { flex: 1, backgroundColor: Colors.background },
+  loader:       { flex:1, justifyContent:'center' },
+  header:       {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
+    padding: 16,
   },
-  dishName: { fontSize: 16 },
-  dishPrice: { fontSize: 16, fontWeight: '500' },
-  orderButton: {
-    marginTop: 24,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  orderText: {
-    color: '#fff',
+  name:         { fontSize: 24, fontWeight: '600', color: Colors.primary },
+  bio:          {
+    marginHorizontal: 16,
+    marginBottom: 16,
     fontSize: 16,
-    fontWeight: '600',
+    color: Colors.textMuted,
   },
+  sectionTitle: {
+    marginHorizontal: 16,
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  dishItem:     {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  dishName:     { fontSize: 16, color: Colors.text },
+  dishPrice:    { fontSize: 16, fontWeight: '600', color: Colors.text },
+  separator:    { height: 1, backgroundColor: '#eee', marginHorizontal: 16 },
 });

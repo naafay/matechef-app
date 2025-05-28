@@ -13,6 +13,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
+import { Colors } from '../theme';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -45,28 +46,22 @@ export default function SignupScreen() {
           password,
         }),
       });
-
       const body = await resp.json().catch(() => ({}));
-
       if (resp.ok) {
-        // Signup succeeded
         Alert.alert('Success', 'Account created! Logging you in…');
         await login(username, password);
         return;
       }
-
-      // Handle known errors
       if (resp.status === 400 && body.detail) {
         Alert.alert(
           'Signup Error',
-          `${body.detail}`,
+          body.detail,
           [
             { text: 'OK' },
             { text: 'Go to Login', onPress: () => navigation.navigate('Login') },
           ]
         );
       } else {
-        // Generic error
         Alert.alert('Signup Error', body.detail || 'Something went wrong.');
       }
     } catch (e: any) {
@@ -83,18 +78,21 @@ export default function SignupScreen() {
       <TextInput
         style={styles.input}
         placeholder="First Name"
+        placeholderTextColor={Colors.textMuted}
         value={firstName}
         onChangeText={setFirstName}
       />
       <TextInput
         style={styles.input}
         placeholder="Last Name"
+        placeholderTextColor={Colors.textMuted}
         value={lastName}
         onChangeText={setLastName}
       />
       <TextInput
         style={styles.input}
         placeholder="Username"
+        placeholderTextColor={Colors.textMuted}
         autoCapitalize="none"
         value={username}
         onChangeText={setUsername}
@@ -102,6 +100,7 @@ export default function SignupScreen() {
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor={Colors.textMuted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -110,6 +109,7 @@ export default function SignupScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor={Colors.textMuted}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -137,29 +137,32 @@ const styles = StyleSheet.create({
     padding: 24,
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    color: Colors.primary,
     marginBottom: 24,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#aaa',
+    borderColor: Colors.primary,
     borderRadius: 4,
     padding: 12,
     marginBottom: 16,
+    backgroundColor: '#fff',
+    color: Colors.text,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 4,
     marginBottom: 12,
   },
   buttonDisabled: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: Colors.secondary,
   },
   buttonText: {
     color: '#fff',
@@ -167,7 +170,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   link: {
-    color: '#4CAF50',
+    color: Colors.primary,
     textAlign: 'center',
     marginTop: 8,
   },

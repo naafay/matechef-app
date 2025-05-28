@@ -1,5 +1,4 @@
 // mobile/src/components/FilterMenu.tsx
-// A horizontal, scrollable menu of filter chips (e.g., All Chefs, Favorite Chefs, etc.)
 
 import React from 'react';
 import {
@@ -9,25 +8,20 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { Colors } from '../theme';
 
-// Defines the shape of each filter option
-export type FilterOption = {
-  key: string;   // unique identifier
-  label: string; // the text shown on the chip
-};
+export interface FilterOption {
+  key: string;
+  label: string;
+}
 
-// Props for the FilterMenu component
-type FilterMenuProps = {
-  options: FilterOption[];        // array of filters to display
-  selectedKey: string | null;     // which filter is active
-  onSelect: (key: string) => void; // callback when a chip is tapped
-};
+interface Props {
+  options: FilterOption[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+}
 
-export default function FilterMenu({
-  options,
-  selectedKey,
-  onSelect,
-}: FilterMenuProps) {
+export default function FilterMenu({ options, selectedKey, onSelect }: Props) {
   return (
     <View style={styles.wrapper}>
       <ScrollView
@@ -35,15 +29,15 @@ export default function FilterMenu({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {options.map((opt) => {
-          const isSelected = opt.key === selectedKey;
+        {options.map(opt => {
+          const isActive = opt.key === selectedKey;
           return (
             <TouchableOpacity
               key={opt.key}
-              style={[styles.chip, isSelected && styles.chipSelected]}
+              style={[styles.chip, isActive && styles.chipActive]}
               onPress={() => onSelect(opt.key)}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -54,32 +48,38 @@ export default function FilterMenu({
   );
 }
 
+const CHIP_HEIGHT = 36;
+const WRAPPER_HEIGHT = CHIP_HEIGHT + 16; // 8px vertical padding top/bottom
+
 const styles = StyleSheet.create({
   wrapper: {
-    height: 50,
-    marginVertical: 8,
+    height: WRAPPER_HEIGHT,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
   },
   scrollContent: {
     paddingHorizontal: 16,
     alignItems: 'center',
   },
   chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    height: CHIP_HEIGHT,
+    marginRight: 12,
+    paddingHorizontal: 16,
+    borderRadius: CHIP_HEIGHT / 2,
     borderWidth: 1,
-    borderColor: '#4CAF50',  // green outline
-    marginRight: 8,
-    backgroundColor: '#FFF',
+    borderColor: Colors.primary,
+    justifyContent: 'center',
   },
-  chipSelected: {
-    backgroundColor: '#4CAF50', // solid green when selected
+  chipActive: {
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
   },
   chipText: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: Colors.primary,
   },
-  chipTextSelected: {
-    color: '#FFF',             // white text on selected chip
+  chipTextActive: {
+    color: Colors.text,
+    fontWeight: '600',
   },
 });

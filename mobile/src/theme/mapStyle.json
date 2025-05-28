@@ -1,0 +1,42 @@
+[
+  {
+    "elementType": "geometry",
+    "stylers": [{ "color": "#E8F2E8" }]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry.fill",
+    "stylers": [{ "color": "#CDE7CE" }]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry.fill",
+    "stylers": [{ "color": "#D8EACE" }]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [{ "color": "#FFFFFF" }]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#264D3D" }]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#264D3D" }]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#264D3D" }]
+  },
+
+  // …and the magic line that hides **all** built-in icons…
+  {
+    "elementType": "labels.icon",
+    "stylers": [{ "visibility": "off" }]
+  }
+]

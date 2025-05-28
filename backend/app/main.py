@@ -20,6 +20,7 @@ from .auth import (
 
 app = FastAPI(title="MateChef API")
 
+
 @app.on_event("startup")
 def on_startup():
     init_db()
@@ -38,6 +39,7 @@ def on_startup():
                 Dish(name="Grilled Chicken",     description="Juicy & spicy", price=15.49, chef_id=2),
             ])
             session.commit()
+
 
 @app.post("/signup", response_model=UserRead)
 def signup(user_in: UserCreate):
@@ -68,6 +70,7 @@ def signup(user_in: UserCreate):
             favorites=[],
         )
 
+
 @app.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with Session(engine) as session:
@@ -79,6 +82,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return {"access_token": create_access_token({"sub": user.username}), "token_type": "bearer"}
+
 
 @app.get("/users/me", response_model=UserRead)
 def read_users_me(current: User = Depends(get_current_user)):
@@ -103,15 +107,65 @@ def read_users_me(current: User = Depends(get_current_user)):
             favorites=fav_ids,
         )
 
+
+@app.post(
+    "/users/me/favorites/{chef_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Add a chef to the current user's favorites",
+)
+def add_favorite(
+    chef_id: int,
+    current: User = Depends(get_current_user),
+):
+    with Session(engine) as session:
+        # ensure chef exists
+        if not session.get(Chef, chef_id):
+            raise HTTPException(status_code=404, detail="Chef not found")
+        # check if already favorited
+        exists = session.exec(
+            select(UserFavoriteLink).where(
+                (UserFavoriteLink.user_id == current.id)
+                & (UserFavoriteLink.chef_id == chef_id)
+            )
+        ).first()
+        if not exists:
+            link = UserFavoriteLink(user_id=current.id, chef_id=chef_id)
+            session.add(link)
+            session.commit()
+
+
+@app.delete(
+    "/users/me/favorites/{chef_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a chef from the current user's favorites",
+)
+def remove_favorite(
+    chef_id: int,
+    current: User = Depends(get_current_user),
+):
+    with Session(engine) as session:
+        link = session.exec(
+            select(UserFavoriteLink).where(
+                (UserFavoriteLink.user_id == current.id)
+                & (UserFavoriteLink.chef_id == chef_id)
+            )
+        ).first()
+        if link:
+            session.delete(link)
+            session.commit()
+
+
 @app.get("/chefs", response_model=List[ChefRead])
 def read_chefs():
     with Session(engine) as session:
         return session.exec(select(Chef)).all()
 
+
 @app.get("/chefs/{chef_id}/dishes", response_model=List[DishRead])
 def read_dishes_by_chef(chef_id: int):
     with Session(engine) as session:
         return session.exec(select(Dish).where(Dish.chef_id == chef_id)).all()
+
 
 @app.get("/dishes", response_model=List[DishRead])
 def read_dishes(filter: str = None):

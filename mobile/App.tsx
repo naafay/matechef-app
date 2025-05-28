@@ -3,12 +3,12 @@ import React, { useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
-  NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
+import { Colors } from './src/theme';
 
 // Screens
 import MapScreen from './src/screens/MapScreen';
@@ -39,18 +39,31 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#264D3D',    // dark green
+        tabBarInactiveTintColor: '#777777',  // muted gray
+        tabBarStyle: { 
+          backgroundColor: Colors.background, // theme’s light mint-green
+        },
         tabBarIcon: ({ color, size }) => {
-          let name: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
+          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
           switch (route.name) {
-            case 'Map':     name = 'map-outline'; break;
-            case 'Favorite':name = 'heart-outline'; break;
-            case 'Search':  name = 'search-outline'; break;
-            case 'Orders':  name = 'list-outline'; break;
-            case 'Account': name = 'person-outline'; break;
+            case 'Map':
+              iconName = color === '#264D3D' ? 'location' : 'location-outline';
+              break;
+            case 'Favorite':
+              iconName = color === '#264D3D' ? 'heart' : 'heart-outline';
+              break;
+            case 'Search':
+              iconName = color === '#264D3D' ? 'search' : 'search-outline';
+              break;
+            case 'Orders':
+              iconName = color === '#264D3D' ? 'list' : 'list-outline';
+              break;
+            case 'Account':
+              iconName = color === '#264D3D' ? 'person' : 'person-outline';
+              break;
           }
-          return <Ionicons name={name} size={size} color={color} />;
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >

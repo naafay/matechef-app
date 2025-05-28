@@ -1,20 +1,22 @@
 // App.tsx
-// Root component setting up the navigation stack for MateChef
+// Sets up the navigation stack for MateChef
 
 import React from 'react';
-// Provides the navigation context for the app
+// Navigation container provides context & state for navigation
 import { NavigationContainer } from '@react-navigation/native';
-// Stack-based navigator
+// Native stack navigator for simple stack-based transitions
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Import screens
+// Import all screens
 import HomeScreen from './src/screens/HomeScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
+import ChefProfileScreen from './src/screens/ChefProfileScreen';
 
-// Define the available routes and their parameters
+// Define the app’s route names and their params
 export type RootStackParamList = {
-  Home: undefined;   // no parameters
-  Browse: undefined; // no parameters
+  Home: undefined;           // initial landing page
+  Browse: undefined;         // browse list of chefs
+  Profile: { chefId: string };// profile view for a specific chef
 };
 
 // Instantiate the stack navigator
@@ -22,17 +24,17 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    // Wrap the app to enable navigation functionality
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
-          headerShown: false, // hide default headers
+          headerShown: false, // we’ll build our own headers later
         }}
       >
-        {/* Register each screen */}
+        {/* Register each route */}
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Browse" component={BrowseScreen} />
+        <Stack.Screen name="Profile" component={ChefProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

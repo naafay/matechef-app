@@ -1,15 +1,21 @@
 // BrowseScreen.tsx
-// Displays a list of chefs for users to browse
+// Shows a list of chefs; tapping one navigates to that chef’s profile
 
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 
-// Props type for Browse screen
+// Props type for this screen’s navigation
 type Props = NativeStackScreenProps<RootStackParamList, 'Browse'>;
 
-// Dummy data until backend integration
+// Temporary dummy data until we hook up the backend
 const CHEFS = [
   { id: '1', name: 'Chef Alice' },
   { id: '2', name: 'Chef Ben' },
@@ -29,10 +35,10 @@ export default function BrowseScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.item}
-            onPress={() => {
-              // TODO: navigate to Profile screen
-              // navigation.navigate('Profile', { chefId: item.id });
-            }}
+            onPress={() =>
+              // Navigate to Profile, passing the chef’s ID
+              navigation.navigate('Profile', { chefId: item.id })
+            }
           >
             <Text style={styles.itemText}>{item.name}</Text>
           </TouchableOpacity>

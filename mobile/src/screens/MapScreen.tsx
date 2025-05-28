@@ -9,11 +9,11 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
-import { getChefs, Chef } from '../api/chefs';
-import { getChefDishes } from '../api/chefs';
+import { getChefs, Chef, getChefDishes } from '../api/chefs';
 import { Dish } from '../api/dishes';
 
 const { width, height } = Dimensions.get('window');
@@ -37,10 +37,11 @@ const LOCATIONS: Record<number, { latitude: number; longitude: number }> = {
 export default function MapScreen() {
   const navigation = useNavigation<any>();
 
-  const [chefs, setChefs] = useState<Chef[]>([]);
-  const [dishCounts, setDishCounts] = useState<Record<number, Dish[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [region, setRegion] = useState<Region>(INITIAL_REGION);
+  const [chefs, setChefs]             = useState<Chef[]>([]);
+  const [dishCounts, setDishCounts]   = useState<Record<number, Dish[]>>({});
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [region, setRegion]           = useState<Region>(INITIAL_REGION);
   const [selectedChef, setSelectedChef] = useState<Chef | null>(null);
 
   // Load chefs + dishes once
@@ -59,8 +60,9 @@ export default function MapScreen() {
           })
         );
         if (mounted) setDishCounts(counts);
-      } catch (e) {
+      } catch (e: any) {
         console.error('[MapScreen] loadData error', e);
+        if (mounted) setError(e.message || 'Failed to load map data');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -91,7 +93,9 @@ export default function MapScreen() {
       <Text style={styles.title}>Plates Nearby</Text>
 
       {loading ? (
-        <Text style={styles.loader}>Loading map data…</Text>
+        <ActivityIndicator style={styles.loader} size="large" />
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
       ) : (
         <MapView
           style={styles.map}
@@ -117,7 +121,6 @@ export default function MapScreen() {
           <Text style={styles.panelText}>
             Dishes: {dishCounts[selectedChef.id]?.length ?? 0}
           </Text>
-          {/* Example extra lines */}
           {dishCounts[selectedChef.id]
             ?.filter((d) => d.name.toLowerCase().includes('grilled'))
             .length > 0 && (
@@ -178,8 +181,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   loader: { textAlign: 'center', marginTop: 20, color: '#555' },
+  errorText: { textAlign: 'center', marginTop: 20, color: 'red' },
   map: { flex: 1 },
-
   panel: {
     position: 'absolute',
     bottom: 0,
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#ddd',
-    maxHeight: PANEL_MAX_HEIGHT,  // allow up to half the screen
+    maxHeight: PANEL_MAX_HEIGHT,
   },
   panelTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
   panelText: { fontSize: 16, marginBottom: 4 },

@@ -1,17 +1,16 @@
 // App.tsx
-// Root navigator: a stack that wraps bottom tabs (Main) and ChefProfile & Cart screens
-
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import { CartProvider } from './src/context/CartContext';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthProvider, AuthContext } from './src/context/AuthContext';
+import { CartProvider } from './src/context/CartContext';
 
-// Import screens
+// Screens
 import MapScreen from './src/screens/MapScreen';
 import FavoriteScreen from './src/screens/FavoriteScreen';
 import SearchScreen from './src/screens/SearchScreen';
@@ -19,12 +18,15 @@ import OrdersScreen from './src/screens/OrdersScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import ChefProfileScreen from './src/screens/ChefProfileScreen';
 import CartScreen from './src/screens/CartScreen';
+import DishDetailScreen from './src/screens/DishDetailScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import SignupScreen from './src/screens/SignupScreen';
 
-// --- 1. Define your root stack’s params ---
 export type RootStackParamList = {
-  Main: undefined;                    // The bottom tabs
-  Profile: { chefId: number };        // ChefProfile, requires chefId
-  Cart: undefined;                    // Cart screen
+  Main: undefined;
+  Profile: { chefId: number };
+  Cart: undefined;
+  DishDetail: { dish: import('./src/api/dishes').Dish };
 };
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -40,25 +42,15 @@ function MainTabs() {
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: 'gray',
         tabBarIcon: ({ color, size }) => {
-          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
+          let name: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
           switch (route.name) {
-            case 'Map':
-              iconName = 'map-outline';
-              break;
-            case 'Favorite':
-              iconName = 'heart-outline';
-              break;
-            case 'Search':
-              iconName = 'search-outline';
-              break;
-            case 'Orders':
-              iconName = 'list-outline';
-              break;
-            case 'Account':
-              iconName = 'person-outline';
-              break;
+            case 'Map':     name = 'map-outline'; break;
+            case 'Favorite':name = 'heart-outline'; break;
+            case 'Search':  name = 'search-outline'; break;
+            case 'Orders':  name = 'list-outline'; break;
+            case 'Account': name = 'person-outline'; break;
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={name} size={size} color={color} />;
         },
       })}
     >
@@ -71,19 +63,38 @@ function MainTabs() {
   );
 }
 
+function AuthStack() {
+  const AuthStack = createNativeStackNavigator();
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
+function RootNavigator() {
+  const { token } = useContext(AuthContext);
+  return token ? (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Main" component={MainTabs} />
+      <RootStack.Screen name="Profile" component={ChefProfileScreen} />
+      <RootStack.Screen name="Cart" component={CartScreen} />
+      <RootStack.Screen name="DishDetail" component={DishDetailScreen} />
+    </RootStack.Navigator>
+  ) : (
+    <AuthStack />
+  );
+}
+
 export default function App() {
   return (
-    <CartProvider>
-      <NavigationContainer>
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
-          {/* MainTabs holds your bottom-tab UI */}
-          <RootStack.Screen name="Main" component={MainTabs} />
-          {/* Chef profile, pushed from anywhere with a chefId */}
-          <RootStack.Screen name="Profile" component={ChefProfileScreen} />
-          {/* Cart screen, pushed when tapping the floating cart button */}
-          <RootStack.Screen name="Cart" component={CartScreen} />
-        </RootStack.Navigator>
-      </NavigationContainer>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </CartProvider>
+    </AuthProvider>
   );
 }

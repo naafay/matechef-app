@@ -1,8 +1,8 @@
-// chefs.ts
-// Fetch all chefs and fetch dishes for a specific chef
+// mobile/src/api/chefs.ts
+// Fetch chefs and a chef’s dishes, always including your JWT
 
 import { API_BASE_URL } from './config';
-import { Dish } from './dishes';
+import { getAuthHeaders } from './authHeaders';
 
 export interface Chef {
   id: number;
@@ -10,26 +10,31 @@ export interface Chef {
   bio?: string;
 }
 
-/**
- * Fetches the list of all chefs.
- */
+// Note: No trailing slash on `/chefs`
 export async function getChefs(): Promise<Chef[]> {
-  const res = await fetch(`${API_BASE_URL}/chefs/`);
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE_URL}/chefs`, { headers });
   if (!res.ok) {
-    throw new Error(`Failed to fetch chefs: ${res.statusText}`);
+    throw new Error(`Failed to fetch chefs: ${res.status} ${res.statusText}`);
   }
-  return res.json();
+  return await res.json();
 }
 
-/**
- * Fetches dishes belonging to a given chef.
- * 
- * @param chefId ID of the chef
- */
+export interface Dish {
+  id: number;
+  chef_id: number;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+}
+
+// No trailing slash on `/chefs/{chefId}/dishes`
 export async function getChefDishes(chefId: number): Promise<Dish[]> {
-  const res = await fetch(`${API_BASE_URL}/chefs/${chefId}/dishes`);
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE_URL}/chefs/${chefId}/dishes`, { headers });
   if (!res.ok) {
-    throw new Error(`Failed to fetch dishes for chef ${chefId}: ${res.statusText}`);
+    throw new Error(`Failed to fetch dishes for chef ${chefId}: ${res.status}`);
   }
-  return res.json();
+  return await res.json();
 }

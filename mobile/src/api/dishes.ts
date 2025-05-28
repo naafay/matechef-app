@@ -1,27 +1,29 @@
 // mobile/src/api/dishes.ts
+// Fetch all dishes (optionally filtered), always including your JWT
+
 import { API_BASE_URL } from './config';
+import { getAuthHeaders } from './authHeaders';
 
 export interface Dish {
   id: number;
+  chef_id: number;
   name: string;
   description?: string;
   price: number;
-  chef_id: number;
+  image?: string;
 }
 
+// No trailing slash on `/dishes`
 export async function getDishes(filter?: string): Promise<Dish[]> {
-  // **Always** include the trailing slash here:
-  let url = `${API_BASE_URL}/dishes/`;
+  const headers = await getAuthHeaders();
+  let url = `${API_BASE_URL}/dishes`;
   if (filter) {
     url += `?filter=${encodeURIComponent(filter)}`;
   }
 
-  console.log('[getDishes] fetching', url);
-  const response = await fetch(url);
-  if (!response.ok) {
-    const text = await response.text();
-    console.error('[getDishes] error body:', text);
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch dishes: ${res.status} ${res.statusText}`);
   }
-  return response.json();
+  return await res.json();
 }

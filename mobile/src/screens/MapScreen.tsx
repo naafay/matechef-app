@@ -1,15 +1,17 @@
-// src/screens/MapScreen.tsx
-// Home tab: Plates Nearby view with a horizontal filter menu
+// mobile/src/screens/MapScreen.tsx
+// Home tab: Plates Nearby view with a real map and a horizontal filter menu
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+// MapView and Marker from react-native-maps
+import MapView, { Marker } from 'react-native-maps';
 import FilterMenu, { FilterOption } from '../components/FilterMenu';
 
 export default function MapScreen() {
-  // Track which filter is selected (default: All Chefs)
+  // Active filter state (default: show all chefs)
   const [activeFilter, setActiveFilter] = useState<string>('allChefs');
 
-  // Define the filters as per your Feature Set
+  // Define filters from your Feature Set
   const FILTER_OPTIONS: FilterOption[] = [
     { key: 'allChefs', label: 'All Chefs' },
     { key: 'favoriteChefs', label: 'Favorite Chefs' },
@@ -17,6 +19,25 @@ export default function MapScreen() {
     { key: 'byRating', label: 'By Rating' },
     { key: 'freeMeals', label: 'Free Meals' },
     { key: 'readyForPickup', label: 'Ready for Pickup' },
+  ];
+
+  // Hard-coded chef locations for demonstration
+  const CHEF_LOCATIONS = [
+    {
+      id: '1',
+      name: 'Chef Alice',
+      coords: { latitude: -37.8136, longitude: 144.9631 },
+    },
+    {
+      id: '2',
+      name: 'Chef Ben',
+      coords: { latitude: -37.8044, longitude: 144.9632 },
+    },
+    {
+      id: '3',
+      name: 'Chef Carla',
+      coords: { latitude: -37.8150, longitude: 144.9660 },
+    },
   ];
 
   return (
@@ -31,17 +52,30 @@ export default function MapScreen() {
         onSelect={setActiveFilter}
       />
 
-      {/* Placeholder for map view; we'll wire up react-native-maps next */}
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.placeholderText}>
-          {'[ Map appears here filtered by: ' +
-            FILTER_OPTIONS.find((o) => o.key === activeFilter)?.label +
-            ']'}
-        </Text>
-      </View>
+      {/* Interactive map */}
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: -37.8136,
+          longitude: 144.9631,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+      >
+        {/* Place a marker for each chef */}
+        {CHEF_LOCATIONS.map((chef) => (
+          <Marker
+            key={chef.id}
+            coordinate={chef.coords}
+            title={chef.name}
+          />
+        ))}
+      </MapView>
     </View>
   );
 }
+
+const { height, width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -55,17 +89,9 @@ const styles = StyleSheet.create({
     marginTop: 48,
     marginBottom: 8,
   },
-  mapPlaceholder: {
+  map: {
     flex: 1,
-    margin: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    color: '#888',
-    textAlign: 'center',
+    width: width,
+    height: height - 150, // adjust to fit below the filters
   },
 });

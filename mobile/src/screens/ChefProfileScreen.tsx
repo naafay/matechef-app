@@ -1,5 +1,5 @@
-// ChefProfileScreen.tsx
-// Displays chef details (name, bio) and their dishes fetched from the backend
+// mobile/src/screens/ChefProfileScreen.tsx
+// Displays chef details and navigates into the Search tab pre-filtered to this chef
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -11,17 +11,16 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../App';
+import { useNavigation } from '@react-navigation/native';
 import { getChefs, getChefDishes, Chef } from '../api/chefs';
 import { Dish } from '../api/dishes';
-import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '../../App';
 
-// Props type for navigation & route params
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export default function ChefProfileScreen({ route }: Props) {
   const { chefId } = route.params;
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<Props['navigation']>();
 
   const [chef, setChef] = useState<Chef | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -30,19 +29,13 @@ export default function ChefProfileScreen({ route }: Props) {
 
   useEffect(() => {
     let isActive = true;
-
-    async function loadData() {
+    async function load() {
       try {
-        // 1. Fetch all chefs, find the matching one
-        const chefs = await getChefs();
-        const found = chefs.find((c) => c.id === chefId);
-        if (!found) {
-          throw new Error('Chef not found');
-        }
-
-        // 2. Fetch that chef’s dishes
+        setLoading(true);
+        const all = await getChefs();
+        const found = all.find((c) => c.id === chefId);
+        if (!found) throw new Error('Chef not found');
         const chefDishes = await getChefDishes(chefId);
-
         if (isActive) {
           setChef(found);
           setDishes(chefDishes);
@@ -53,9 +46,7 @@ export default function ChefProfileScreen({ route }: Props) {
         if (isActive) setLoading(false);
       }
     }
-
-    loadData();
-
+    load();
     return () => {
       isActive = false;
     };
@@ -68,29 +59,20 @@ export default function ChefProfileScreen({ route }: Props) {
       </View>
     );
   }
-  if (error) {
+  if (error || !chef) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Error: {error}</Text>
-      </View>
-    );
-  }
-  if (!chef) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Chef not found.</Text>
+        <Text style={styles.error}>Error: {error ?? 'Chef not found'}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Chef header */}
       <Text style={styles.name}>{chef.name}</Text>
       {chef.bio && <Text style={styles.bio}>{chef.bio}</Text>}
 
-      {/* Dishes list */}
-      <Text style={styles.sectionTitle}>Popular Dishes</Text>
+      <Text style={styles.sectionTitle}>Dishes by {chef.name}</Text>
       {dishes.length === 0 ? (
         <Text style={styles.empty}>No dishes available.</Text>
       ) : (
@@ -106,12 +88,13 @@ export default function ChefProfileScreen({ route }: Props) {
         />
       )}
 
-      {/* Order from Chef button */}
       <TouchableOpacity
         style={styles.orderButton}
         onPress={() =>
-          navigation.navigate('Search', {
-            // pre-select a filter or pass chefId as needed later
+          // Jump into the Main (tabs) navigator, opening the Search tab
+          navigation.navigate('Main', {
+            screen: 'Search',
+            params: { chefId },
           })
         }
       >
@@ -135,6 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   error: { color: 'red' },
+
   name: {
     fontSize: 28,
     fontWeight: 'bold',

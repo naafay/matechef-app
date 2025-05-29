@@ -30,7 +30,7 @@ export default function LoginScreen() {
     try {
       await login(username, password);
     } catch {
-      // login() shows alert on failure
+      // login() already shows an alert on failure
     }
   };
 
@@ -66,7 +66,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',    // allow the mc_bg.jpg to show through
     justifyContent: 'center',
     padding: 24,
   },

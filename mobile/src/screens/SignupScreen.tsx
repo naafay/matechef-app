@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     padding: 24,
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',   // allow the mc_bg.jpg to show through
   },
   title: {
     fontSize: 28,

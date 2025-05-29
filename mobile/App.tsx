@@ -1,20 +1,22 @@
 // App.tsx
 import React, { useContext } from 'react';
-import { ImageBackground, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator }  from '@react-navigation/native-stack';
-import { createBottomTabNavigator }      from '@react-navigation/bottom-tabs';
-import { Ionicons }                      from '@expo/vector-icons';
+import { View, ImageBackground, StyleSheet } from 'react-native';
+import { NavigationContainer }                   from '@react-navigation/native';
+import { createNativeStackNavigator }            from '@react-navigation/native-stack';
+import { createBottomTabNavigator }              from '@react-navigation/bottom-tabs';
+import { Ionicons }                              from '@expo/vector-icons';
 
-import { AuthProvider, AuthContext }     from './src/context/AuthContext';
-import { CartProvider }                  from './src/context/CartContext';
-import { Colors }                        from './src/theme';
+import { AuthProvider, AuthContext }             from './src/context/AuthContext';
+import { CartProvider }                          from './src/context/CartContext';
+import { Colors }                                from './src/theme';
+import Header                                    from './src/components/Header';
 
 // Screens
 import MapScreen         from './src/screens/MapScreen';
 import FavoriteScreen    from './src/screens/FavoriteScreen';
 import SearchScreen      from './src/screens/SearchScreen';
 import OrdersScreen      from './src/screens/OrdersScreen';
+import ChatListScreen    from './src/screens/ChatListScreen';
 import AccountScreen     from './src/screens/AccountScreen';
 import ChefProfileScreen from './src/screens/ChefProfileScreen';
 import CartScreen        from './src/screens/CartScreen';
@@ -24,6 +26,7 @@ import SignupScreen      from './src/screens/SignupScreen';
 
 export type RootStackParamList = {
   Main: undefined;
+  Account: undefined;
   Profile: { chefId: number };
   Cart: undefined;
   DishDetail: { dish: import('./src/api/dishes').Dish };
@@ -45,11 +48,23 @@ function MainTabs() {
         tabBarStyle: { backgroundColor: Colors.background },
         tabBarIcon: ({ color, size }) => {
           let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
-          if (route.name === 'Map')      iconName = color === '#264D3D' ? 'location'      : 'location-outline';
-          if (route.name === 'Favorite') iconName = color === '#264D3D' ? 'heart'         : 'heart-outline';
-          if (route.name === 'Search')   iconName = color === '#264D3D' ? 'search'        : 'search-outline';
-          if (route.name === 'Orders')   iconName = color === '#264D3D' ? 'list'          : 'list-outline';
-          if (route.name === 'Account')  iconName = color === '#264D3D' ? 'person'        : 'person-outline';
+          switch (route.name) {
+            case 'Map':
+              iconName = color === '#264D3D' ? 'location'      : 'location-outline';
+              break;
+            case 'Favorite':
+              iconName = color === '#264D3D' ? 'heart'         : 'heart-outline';
+              break;
+            case 'Search':
+              iconName = color === '#264D3D' ? 'search'        : 'search-outline';
+              break;
+            case 'Orders':
+              iconName = color === '#264D3D' ? 'list'          : 'list-outline';
+              break;
+            case 'Chat':
+              iconName = color === '#264D3D' ? 'chatbubble'    : 'chatbubble-outline';
+              break;
+          }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
@@ -58,7 +73,7 @@ function MainTabs() {
       <Tab.Screen name="Favorite" component={FavoriteScreen} />
       <Tab.Screen name="Search"   component={SearchScreen} />
       <Tab.Screen name="Orders"   component={OrdersScreen} />
-      <Tab.Screen name="Account"  component={AccountScreen} />
+      <Tab.Screen name="Chat"     component={ChatListScreen} />
     </Tab.Navigator>
   );
 }
@@ -71,6 +86,7 @@ function AuthFlow() {
       style={styles.background}
       resizeMode="cover"
     >
+      <Header />
       <AuthStack.Navigator
         screenOptions={{
           headerShown: false,
@@ -88,12 +104,16 @@ function RootNavigator() {
   const { token } = useContext(AuthContext);
   console.log('🛰️  RootNavigator token?', token);
   return token ? (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      <RootStack.Screen name="Main"      component={MainTabs}           />
-      <RootStack.Screen name="Profile"   component={ChefProfileScreen}  />
-      <RootStack.Screen name="Cart"      component={CartScreen}         />
-      <RootStack.Screen name="DishDetail" component={DishDetailScreen} />
-    </RootStack.Navigator>
+    <View style={{ flex: 1 }}>
+      <Header />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="Main"      component={MainTabs}           />
+        <RootStack.Screen name="Account"   component={AccountScreen}      />
+        <RootStack.Screen name="Profile"   component={ChefProfileScreen}  />
+        <RootStack.Screen name="Cart"      component={CartScreen}         />
+        <RootStack.Screen name="DishDetail"component={DishDetailScreen}  />
+      </RootStack.Navigator>
+    </View>
   ) : (
     <AuthFlow />
   );

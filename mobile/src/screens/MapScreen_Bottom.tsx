@@ -1,5 +1,4 @@
 // mobile/src/screens/MapScreen.tsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -11,12 +10,11 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Marker, Callout, Region } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import FilterMenu, { FilterOption } from '../components/FilterMenu';
 import { getChefs, Chef, getChefDishes } from '../api/chefs';
 import { Dish } from '../api/dishes';
-import mapStyle from '../theme/mapStyle.json';
 import { Colors } from '../theme';
 
 const { width, height } = Dimensions.get('window');
@@ -35,7 +33,7 @@ const INITIAL_REGION: Region = {
 const LOCATIONS: Record<number, { latitude: number; longitude: number }> = {
   1: { latitude: -37.8136, longitude: 144.9631 },
   2: { latitude: -37.8044, longitude: 144.9632 },
-  // Add more as needed
+  // …add more IDs as needed
 };
 
 const FIRST_LAYER: FilterOption[] = [
@@ -50,7 +48,6 @@ const GREEN_PIN = require('../../assets/marker-green.png');
 
 export default function MapScreen() {
   const navigation = useNavigation<any>();
-
   const [firstFilter, setFirstFilter]       = useState<string>('top');
   const [chefs, setChefs]                   = useState<Chef[]>([]);
   const [dishCounts, setDishCounts]         = useState<Record<number, Dish[]>>({});
@@ -60,7 +57,7 @@ export default function MapScreen() {
   const [selectedChefId, setSelectedChefId] = useState<number | null>(null);
   const [selectedDishes, setSelectedDishes] = useState<Dish[]>([]);
 
-  // Marker refs for possible future use (but not for callout)
+  // Refs to each Marker so we can call showCallout()
   const markerRefs = useRef<Record<number, Marker | null>>({});
 
   useEffect(() => {
@@ -142,7 +139,7 @@ export default function MapScreen() {
           <MapView
             style={styles.map}
             initialRegion={INITIAL_REGION}
-            customMapStyle={mapStyle}
+            customMapStyle={require('../theme/mapStyle.json')}
             onRegionChangeComplete={setRegion}
           >
             {visibleChefs.map(chef => {
@@ -154,25 +151,37 @@ export default function MapScreen() {
                   coordinate={loc}
                   image={isSelected ? GREEN_PIN : GOLD_PIN}
                   ref={ref => { markerRefs.current[chef.id] = ref; }}
-                  onPress={() => setSelectedChefId(chef.id)}
-                  calloutAnchor={{ x: 0.5, y: 2 }} // Hide default callout offscreen
-                />
+                  onPress={() => {
+                    setSelectedChefId(chef.id);
+                    setTimeout(() => {
+                      markerRefs.current[chef.id]?.showCallout();
+                    }, 100);
+                  }}
+                >
+                  <Callout
+                    onPress={() => navigation.navigate('ChefProfileScreen', { chefId: chef.id })}
+                  >
+                    <View style={styles.calloutContainer}>
+                      <Text style={styles.calloutText}>{chef.name}</Text>
+                    </View>
+                  </Callout>
+                </Marker>
               );
             })}
           </MapView>
 
           {/* Bottom panel for selected Chef */}
           {selectedChefId && (
-            <View style={styles.bottomPanel}>
+            <TouchableOpacity
+              activeOpacity={0.95}
+              style={styles.bottomPanel}
+              onPress={() => navigation.navigate('ChefProfileScreen', { chefId: selectedChefId })}
+            >
               <View style={styles.panelHeader}>
                 <Text style={styles.panelChefName}>
                   {chefs.find(c => c.id === selectedChefId)?.name || 'Chef'}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile', { chefId: selectedChefId })}
-                >
-                  <Text style={styles.panelViewProfile}>View Profile</Text>
-                </TouchableOpacity>
+                <Text style={styles.panelViewProfile}>View Profile</Text>
               </View>
               <FlatList
                 data={selectedDishes}
@@ -181,17 +190,14 @@ export default function MapScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingVertical: 6 }}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.dishItem}
-                    onPress={() => navigation.navigate('DishDetail', { dish: item })}
-                  >
+                  <View style={styles.dishItem}>
                     <Text style={styles.dishName}>{item.name}</Text>
                     <Text style={styles.dishPrice}>${item.price.toFixed(2)}</Text>
-                  </TouchableOpacity>
+                  </View>
                 )}
                 ListEmptyComponent={<Text style={styles.noDishes}>No dishes available</Text>}
               />
-            </View>
+            </TouchableOpacity>
           )}
         </>
       )}
@@ -224,6 +230,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: Colors.danger,
+  },
+  calloutContainer: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  calloutText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   bottomPanel: {
     position: 'absolute',
@@ -277,7 +294,7 @@ const styles = StyleSheet.create({
   },
   noDishes: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: Colors.muted,
     marginLeft: 8,
   },
 });

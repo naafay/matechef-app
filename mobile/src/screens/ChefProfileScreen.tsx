@@ -10,8 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import {
+  useRoute,
+  useNavigation,
+  RouteProp,
+} from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../App';
 import { getChefs, getChefDishes, Chef } from '../api/chefs';
 import { Dish } from '../api/dishes';
@@ -22,45 +27,46 @@ import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 
 type ProfileRoute = RouteProp<RootStackParamList, 'Profile'>;
-type NavProp      = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
+type NavProp     = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
 export default function ChefProfileScreen() {
-  const route = useRoute<ProfileRoute>();
+  const insets = useSafeAreaInsets();
+  const route  = useRoute<ProfileRoute>();
   const navigation = useNavigation<NavProp>();
   const { token } = useContext(AuthContext);
   const chefId = route.params.chefId;
 
-  const [chef, setChef]         = useState<Chef | null>(null);
-  const [dishes, setDishes]     = useState<Dish[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [chef, setChef]       = useState<Chef | null>(null);
+  const [dishes, setDishes]   = useState<Dish[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    let m = true;
+    let mounted = true;
     (async () => {
       try {
         const headers = await getAuthHeaders();
         const meRes = await fetch(`${API_BASE_URL}/users/me`, { headers });
         if (!meRes.ok) throw new Error('Fetch user failed');
         const me = await meRes.json();
-        if (m) setIsFavorite(me.favorites.includes(chefId));
+        if (mounted) setIsFavorite(me.favorites.includes(chefId));
 
         const allChefs = await getChefs();
-        const found = allChefs.find(c => c.id === chefId);
+        const found   = allChefs.find(c => c.id === chefId);
         if (!found) throw new Error('Chef not found');
-        const chefDs = await getChefDishes(chefId);
+        const chefDs  = await getChefDishes(chefId);
 
-        if (m) {
+        if (mounted) {
           setChef(found);
           setDishes(chefDs);
         }
       } catch (e: any) {
         Alert.alert('Error', e.message);
       } finally {
-        if (m) setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
-    return () => { m = false; };
+    return () => { mounted = false; };
   }, [chefId]);
 
   const toggleFavorite = async () => {
@@ -77,11 +83,15 @@ export default function ChefProfileScreen() {
   };
 
   if (loading || !chef) {
-    return <ActivityIndicator style={styles.loader} size="large" />;
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.name}>{chef.name}</Text>
         <TouchableOpacity onPress={toggleFavorite}>
@@ -92,37 +102,51 @@ export default function ChefProfileScreen() {
           />
         </TouchableOpacity>
       </View>
-      {chef.bio ? <Text style={styles.bio}>{chef.bio}</Text> : null}
+
+      {chef.bio ? (
+        <Text style={styles.bio}>{chef.bio}</Text>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Dishes</Text>
       <FlatList
         data={dishes}
         keyExtractor={d => d.id.toString()}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.dishItem}
-            onPress={() => navigation.navigate('DishDetail', { dish: item })}
+            onPress={() =>
+              navigation.navigate('DishDetail', { dish: item })
+            }
           >
             <Text style={styles.dishName}>{item.name}</Text>
-            <Text style={styles.dishPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.dishPrice}>
+              ${item.price.toFixed(2)}
+            </Text>
           </TouchableOpacity>
         )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() =>
+          <View style={styles.separator} />
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: Colors.background },
-  loader:       { flex:1, justifyContent:'center' },
-  header:       {
+  container:  { flex: 1, backgroundColor: Colors.background },
+  loader:     { flex: 1, justifyContent: 'center' },
+  header:     {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
   },
-  name:         { fontSize: 24, fontWeight: '600', color: Colors.primary },
-  bio:          {
+  name:       {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  bio:        {
     marginHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
@@ -134,12 +158,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
   },
-  dishItem:     {
+  dishItem:   {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
   },
-  dishName:     { fontSize: 16, color: Colors.text },
-  dishPrice:    { fontSize: 16, fontWeight: '600', color: Colors.text },
-  separator:    { height: 1, backgroundColor: '#eee', marginHorizontal: 16 },
+  dishName:   { fontSize: 16, color: Colors.text },
+  dishPrice:  { fontSize: 16, fontWeight: '600', color: Colors.text },
+  separator:  {
+    height: 1,
+    backgroundColor: '#eee',
+    marginHorizontal: 16,
+  },
 });

@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
   Alert,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
@@ -36,11 +37,16 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <Image
+        source={require('../../assets/mc_logo_header.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>MateChef Login</Text>
       <TextInput
         style={styles.input}
         placeholder="Username or Email"
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor="#b5cdb5"
         autoCapitalize="none"
         value={username}
         onChangeText={setUsername}
@@ -48,7 +54,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor="#b5cdb5"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -66,39 +72,48 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',    // allow the mc_bg.jpg to show through
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
+  },
+  logo: {
+    width: 180,
+    height: 80,
+    marginBottom: 18,
+    marginTop: -40,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#fff',
     marginBottom: 24,
     textAlign: 'center',
   },
   input: {
+    width: '100%',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: '#fff',
     borderRadius: 4,
     padding: 12,
     marginBottom: 16,
-    color: Colors.text,
-    backgroundColor: '#fff',
+    color: '#fff',
+    backgroundColor: '#1e3d2a',
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 4,
     marginBottom: 12,
+    width: '100%',
   },
   buttonText: {
-    color: '#fff',
+    color: Colors.primary,
     textAlign: 'center',
     fontWeight: '600',
   },
   link: {
-    color: Colors.primary,
+    color: '#fff',
     textAlign: 'center',
     marginTop: 8,
   },

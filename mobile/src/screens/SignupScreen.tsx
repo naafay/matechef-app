@@ -1,12 +1,12 @@
 // mobile/src/screens/SignupScreen.tsx
 import React, { useState, useContext } from 'react';
 import {
-  ScrollView,
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
   Alert,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
@@ -15,84 +15,47 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 import { Colors } from '../theme';
 
-type NavProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type SignupNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
 export default function SignupScreen() {
-  const navigation = useNavigation<NavProp>();
   const { login } = useContext(AuthContext);
-
-  const [firstName, setFirstName] = useState('');
-  const [lastName,  setLastName]  = useState('');
-  const [username,  setUsername]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [password,  setPassword]  = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const navigation = useNavigation<SignupNavProp>();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
 
   const onSubmit = async () => {
-    if (![firstName, lastName, username, email, password].every(Boolean)) {
-      Alert.alert('Error', 'All fields are required.');
+    if (!username || !email || !password || !confirm) {
+      Alert.alert('Error', 'Please fill all fields.');
       return;
     }
-    setSubmitting(true);
+    if (password !== confirm) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+    // TODO: Replace this with your actual signup logic
     try {
-      const resp = await fetch('http://10.0.2.2:8000/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name:  lastName,
-          username,
-          email,
-          password,
-        }),
-      });
-      const body = await resp.json().catch(() => ({}));
-      if (resp.ok) {
-        Alert.alert('Success', 'Account created! Logging you in…');
-        await login(username, password);
-        return;
-      }
-      if (resp.status === 400 && body.detail) {
-        Alert.alert(
-          'Signup Error',
-          body.detail,
-          [
-            { text: 'OK' },
-            { text: 'Go to Login', onPress: () => navigation.navigate('Login') },
-          ]
-        );
-      } else {
-        Alert.alert('Signup Error', body.detail || 'Something went wrong.');
-      }
-    } catch (e: any) {
-      Alert.alert('Network Error', e.message);
-    } finally {
-      setSubmitting(false);
+      // Example: await api.signup({ username, email, password });
+      // Then log in automatically:
+      await login(username, password);
+    } catch {
+      // Show your own error
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="First Name"
-        placeholderTextColor={Colors.textMuted}
-        value={firstName}
-        onChangeText={setFirstName}
+    <View style={styles.container}>
+      <Image
+        source={require('../../assets/mc_logo_header.png')}
+        style={styles.logo}
+        resizeMode="contain"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Last Name"
-        placeholderTextColor={Colors.textMuted}
-        value={lastName}
-        onChangeText={setLastName}
-      />
+      <Text style={styles.title}>Sign Up for MateChef</Text>
       <TextInput
         style={styles.input}
         placeholder="Username"
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor="#b5cdb5"
         autoCapitalize="none"
         value={username}
         onChangeText={setUsername}
@@ -100,77 +63,82 @@ export default function SignupScreen() {
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor="#b5cdb5"
         autoCapitalize="none"
-        keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor="#b5cdb5"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-
-      <TouchableOpacity
-        style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={onSubmit}
-        disabled={submitting}
-      >
-        <Text style={styles.buttonText}>
-          {submitting ? 'Signing Up…' : 'Sign Up'}
-        </Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        placeholderTextColor="#b5cdb5"
+        secureTextEntry
+        value={confirm}
+        onChangeText={setConfirm}
+      />
+      <TouchableOpacity style={styles.button} onPress={onSubmit}>
+        <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
-
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.link}>Have an account? Log In</Text>
+        <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
-    flexGrow: 1,
+    flex: 1,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
-    backgroundColor: 'transparent',   // allow the mc_bg.jpg to show through
+    alignItems: 'center',
+    padding: 24,
+  },
+  logo: {
+    width: 180,
+    height: 80,
+    marginBottom: 18,
+    marginTop: -40,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#fff',
     marginBottom: 24,
     textAlign: 'center',
   },
   input: {
+    width: '100%',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: '#fff',
     borderRadius: 4,
     padding: 12,
     marginBottom: 16,
-    backgroundColor: '#fff',
-    color: Colors.text,
+    color: '#fff',
+    backgroundColor: '#1e3d2a',
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 4,
     marginBottom: 12,
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.secondary,
+    width: '100%',
   },
   buttonText: {
-    color: '#fff',
+    color: Colors.primary,
     textAlign: 'center',
     fontWeight: '600',
   },
   link: {
-    color: Colors.primary,
+    color: '#fff',
     textAlign: 'center',
     marginTop: 8,
   },

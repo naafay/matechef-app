@@ -40,7 +40,7 @@ export default function DishDetailScreen({ route, navigation }: Props) {
   }, [dish.chef_id]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         style={styles.container}

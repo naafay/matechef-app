@@ -7,18 +7,52 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme';
 
-export default function Header() {
-  const navigation = useNavigation();
+interface HeaderProps {
+  currentTab: string | null;
+  currentStack: string | null;
+}
+
+export default function Header({ currentTab, currentStack }: HeaderProps) {
+  const navigation = useNavigation<any>();
+
+  function handleAccountPress() {
+    if (currentStack === 'Account') {
+      // Determine root screen for current tab
+      let rootScreen = '';
+      switch (currentTab) {
+        case 'MapTab':
+          rootScreen = 'Map';
+          break;
+        case 'FavoriteTab':
+          rootScreen = 'Favorite';
+          break;
+        case 'SearchTab':
+          rootScreen = 'Search';
+          break;
+        case 'OrdersTab':
+          rootScreen = 'Orders';
+          break;
+        case 'ChatTab':
+          rootScreen = 'Chat';
+          break;
+        default:
+          rootScreen = 'Map';
+      }
+      navigation.reset({
+        index: 0,
+        routes: [{ name: rootScreen }],
+      });
+    } else {
+      navigation.navigate('Account');
+    }
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Left: User avatar */}
-        <TouchableOpacity onPress={() => navigation.navigate('Account' as any)}>
+        <TouchableOpacity onPress={handleAccountPress}>
           <Ionicons name="person-circle-outline" size={28} color={Colors.primary} />
         </TouchableOpacity>
-
-        {/* Center (absolute overlay): Logo */}
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/mc_logo_header.png')}
@@ -26,17 +60,15 @@ export default function Header() {
             resizeMode="contain"
           />
         </View>
-
-        {/* Right: Cart + Notifications */}
         <View style={styles.rightIcons}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Cart' as any)}
+            onPress={() => navigation.navigate('Cart')}
             style={styles.iconButton}
           >
             <Ionicons name="cart-outline" size={24} color={Colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Notifications' as any)}
+            onPress={() => navigation.navigate('Notifications')}
             style={styles.iconButton}
           >
             <Ionicons name="notifications-outline" size={24} color={Colors.primary} />
@@ -52,15 +84,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   container: {
-    height: 60,                     // fixed header height
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     backgroundColor: Colors.background,
-    position: 'relative',           // for the logo overlay
+    position: 'relative',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.textMuted, // thin bottom border
+    borderBottomColor: Colors.textMuted,
   },
   logoContainer: {
     position: 'absolute',
@@ -72,8 +104,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 150,   // 120 × 1.25
-    height: 40,   // 32 × 1.25
+    width: 150,
+    height: 40,
   },
   rightIcons: {
     flexDirection: 'row',

@@ -31,11 +31,9 @@ const INITIAL_REGION: Region = {
   longitudeDelta: LONGITUDE_DELTA,
 };
 
-// Demo coords per chef ID
 const LOCATIONS: Record<number, { latitude: number; longitude: number }> = {
   1: { latitude: -37.8136, longitude: 144.9631 },
   2: { latitude: -37.8044, longitude: 144.9632 },
-  // Add more as needed
 };
 
 const FIRST_LAYER: FilterOption[] = [
@@ -60,7 +58,6 @@ export default function MapScreen() {
   const [selectedChefId, setSelectedChefId] = useState<number | null>(null);
   const [selectedDishes, setSelectedDishes] = useState<Dish[]>([]);
 
-  // Marker refs for possible future use (but not for callout)
   const markerRefs = useRef<Record<number, Marker | null>>({});
 
   useEffect(() => {
@@ -88,7 +85,6 @@ export default function MapScreen() {
     return () => { mounted = false; };
   }, []);
 
-  // When marker selected, load that chef's dishes for the panel
   useEffect(() => {
     if (selectedChefId && dishCounts[selectedChefId]) {
       setSelectedDishes(dishCounts[selectedChefId]);
@@ -144,6 +140,7 @@ export default function MapScreen() {
             initialRegion={INITIAL_REGION}
             customMapStyle={mapStyle}
             onRegionChangeComplete={setRegion}
+            onPress={() => setSelectedChefId(null)} // Hides panel on map press
           >
             {visibleChefs.map(chef => {
               const loc = LOCATIONS[chef.id]!;
@@ -154,14 +151,16 @@ export default function MapScreen() {
                   coordinate={loc}
                   image={isSelected ? GREEN_PIN : GOLD_PIN}
                   ref={ref => { markerRefs.current[chef.id] = ref; }}
-                  onPress={() => setSelectedChefId(chef.id)}
-                  calloutAnchor={{ x: 0.5, y: 2 }} // Hide default callout offscreen
+                  onPress={e => {
+                    e.stopPropagation(); // Prevents map onPress firing too
+                    setSelectedChefId(chef.id);
+                  }}
+                  calloutAnchor={{ x: 0.5, y: 2 }}
                 />
               );
             })}
           </MapView>
 
-          {/* Bottom panel for selected Chef */}
           {selectedChefId && (
             <View style={styles.bottomPanel}>
               <View style={styles.panelHeader}>

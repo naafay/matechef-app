@@ -91,7 +91,7 @@ export default function ChefProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={styles.name}>{chef.name}</Text>
         <TouchableOpacity onPress={toggleFavorite}>

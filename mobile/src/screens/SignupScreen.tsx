@@ -14,19 +14,23 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 import { Colors } from '../theme';
+import { API_BASE_URL } from '../api/config';
 
 type SignupNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
 export default function SignupScreen() {
   const { login } = useContext(AuthContext);
   const navigation = useNavigation<SignupNavProp>();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    if (!username || !email || !password || !confirm) {
+    if (!firstName || !lastName || !username || !email || !password || !confirm) {
       Alert.alert('Error', 'Please fill all fields.');
       return;
     }
@@ -34,13 +38,35 @@ export default function SignupScreen() {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
-    // TODO: Replace this with your actual signup logic
+    setLoading(true);
     try {
-      // Example: await api.signup({ username, email, password });
-      // Then log in automatically:
+      const res = await fetch(`${API_BASE_URL}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          username,
+          email,
+          password,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        let msg = data.detail || 'Signup failed. Try a different username or email.';
+        if (Array.isArray(data.detail)) {
+          msg = data.detail.map((d: any) => d.msg).join(', ');
+        }
+        Alert.alert('Signup Error', msg);
+        setLoading(false);
+        return;
+      }
+      // Success! Log in immediately.
       await login(username, password);
-    } catch {
-      // Show your own error
+    } catch (err: any) {
+      Alert.alert('Signup Error', err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,6 +78,22 @@ export default function SignupScreen() {
         resizeMode="contain"
       />
       <Text style={styles.title}>Sign Up for MateChef</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="First Name"
+        placeholderTextColor="#b5cdb5"
+        autoCapitalize="words"
+        value={firstName}
+        onChangeText={setFirstName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Last Name"
+        placeholderTextColor="#b5cdb5"
+        autoCapitalize="words"
+        value={lastName}
+        onChangeText={setLastName}
+      />
       <TextInput
         style={styles.input}
         placeholder="Username"
@@ -84,8 +126,8 @@ export default function SignupScreen() {
         value={confirm}
         onChangeText={setConfirm}
       />
-      <TouchableOpacity style={styles.button} onPress={onSubmit}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity style={styles.button} onPress={onSubmit} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Signing Up...' : 'Sign Up'}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.link}>Already have an account? Login</Text>

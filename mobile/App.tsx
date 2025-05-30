@@ -1,7 +1,7 @@
 // App.tsx
 
 import React, { useContext } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -23,6 +23,7 @@ import CartScreen from './src/screens/CartScreen';
 import DishDetailScreen from './src/screens/DishDetailScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
+import RolePickerScreen from './src/screens/RolePickerScreen'; // Add this import
 
 const MapStack = createNativeStackNavigator();
 function MapStackScreen() {
@@ -155,6 +156,40 @@ function AuthFlow() {
   );
 }
 
+// New: RootNavigator with role picker logic
+function RootNavigator({ currentTab, currentStack }: { currentTab: string | null, currentStack: string | null }) {
+  const { user, token, loading } = useContext(AuthContext);
+
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!token || !user) {
+    return <AuthFlow />;
+  }
+
+  // If the user hasn't picked a role yet, force them to Role Picker
+  if (!user.active_role) {
+    const Stack = createNativeStackNavigator();
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="RolePicker" component={RolePickerScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  // Main app (eater/feeder logic can be added here)
+  return (
+    <View style={{ flex: 1 }}>
+      <Header currentTab={currentTab} currentStack={currentStack} />
+      <MainTabs />
+    </View>
+  );
+}
 
 export default function App() {
   const [currentTab, setCurrentTab] = React.useState<string | null>(null);
@@ -182,18 +217,7 @@ export default function App() {
   );
 }
 
-function RootNavigator({ currentTab, currentStack }: { currentTab: string | null, currentStack: string | null }) {
-  const { token } = useContext(AuthContext);
-  return token ? (
-    <View style={{ flex: 1 }}>
-      <Header currentTab={currentTab} currentStack={currentStack} />
-      <MainTabs />
-    </View>
-  ) : (
-    <AuthFlow />
-  );
-}
-
 const styles = StyleSheet.create({
   background: { flex: 1 },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
 });

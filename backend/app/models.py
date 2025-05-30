@@ -22,6 +22,11 @@ class User(SQLModel, table=True):
     is_feeder:  bool = Field(default=False)
     profile_picture: Optional[str] = None
 
+    # Feeder/role fields
+    active_role: Optional[str] = Field(default=None)   # <-- THIS IS THE FIX!
+    address: Optional[str] = None
+    id_verification: Optional[str] = None
+
     favorites: List["Chef"] = Relationship(
         back_populates="favorited_by", link_model=UserFavoriteLink
     )
@@ -31,7 +36,7 @@ class Chef(SQLModel, table=True):
     name: str
     bio: Optional[str] = None
 
-    favorited_by: List[User] = Relationship(
+    favorited_by: List["User"] = Relationship(
         back_populates="favorites", link_model=UserFavoriteLink
     )
     dishes: List["Dish"] = Relationship(back_populates="chef")
@@ -42,5 +47,11 @@ class Dish(SQLModel, table=True):
     description: Optional[str] = None
     price: float
     chef_id: int = Field(foreign_key="chef.id")
+
+    # Feeder/meal extra fields
+    is_kind: bool = Field(default=False)
+    prep_time: Optional[int] = None
+    pickup_available: bool = Field(default=True)
+    delivery_available: bool = Field(default=False)
 
     chef: Optional[Chef] = Relationship(back_populates="dishes")

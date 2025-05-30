@@ -1,15 +1,15 @@
 # backend/app/main.py
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 from typing import List
 
 from .database import engine, init_db
 from .models import User, Chef, Dish, UserFavoriteLink
 from .schemas import (
     UserCreate, Token, UserRead,
-    ChefRead, DishRead
+    ChefRead, DishRead, DishCreate,
 )
 from .auth import (
     get_password_hash,
@@ -19,7 +19,6 @@ from .auth import (
 )
 
 app = FastAPI(title="MateChef API")
-
 
 @app.on_event("startup")
 def on_startup():
@@ -40,7 +39,6 @@ def on_startup():
             ])
             session.commit()
 
-
 @app.post("/signup", response_model=UserRead)
 def signup(user_in: UserCreate):
     with Session(engine) as session:
@@ -54,6 +52,9 @@ def signup(user_in: UserCreate):
             username=user_in.username,
             email=user_in.email,
             hashed_password=get_password_hash(user_in.password),
+            is_eater=True,
+            is_feeder=False,
+            active_role=None,  # User must pick at login
         )
         session.add(user)
         session.commit()
@@ -68,14 +69,22 @@ def signup(user_in: UserCreate):
             is_feeder=user.is_feeder,
             profile_picture=user.profile_picture,
             favorites=[],
+            active_role=user.active_role,
+            address=user.address,
+            id_verification=user.id_verification,
         )
 
+def find_user_by_username_or_email(session, username_or_email):
+    user = session.exec(select(User).where(User.username == username_or_email)).first()
+    if not user:
+        user = session.exec(select(User).where(User.email == username_or_email)).first()
+    return user
 
 @app.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with Session(engine) as session:
-        user = authenticate_user(session, form_data.username, form_data.password)
-        if not user:
+        user = find_user_by_username_or_email(session, form_data.username)
+        if not user or not authenticate_user(session, user.username, form_data.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username/email or password",
@@ -83,10 +92,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
             )
         return {"access_token": create_access_token({"sub": user.username}), "token_type": "bearer"}
 
-
 @app.get("/users/me", response_model=UserRead)
 def read_users_me(current: User = Depends(get_current_user)):
-    # re-load user inside session to fetch favorites
     with Session(engine) as session:
         user_db = session.get(User, current.id)
         if not user_db:
@@ -105,8 +112,77 @@ def read_users_me(current: User = Depends(get_current_user)):
             is_feeder=user_db.is_feeder,
             profile_picture=user_db.profile_picture,
             favorites=fav_ids,
+            active_role=user_db.active_role,
+            address=user_db.address,
+            id_verification=user_db.id_verification,
         )
 
+# PATCH role - accepts JSON body: {"role": "eater"} or {"role": "feeder"}
+@app.patch("/users/me/role", summary="Switch between eater/feeder mode")
+def switch_role(
+    data: dict = Body(...),  # JSON body
+    current: User = Depends(get_current_user)
+):
+    role = data.get("role")
+    if role not in ("eater", "feeder"):
+        raise HTTPException(status_code=400, detail="Role must be 'eater' or 'feeder'")
+    with Session(engine) as session:
+        user_db = session.get(User, current.id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_db.active_role = role
+        session.add(user_db)
+        session.commit()
+        return {"active_role": user_db.active_role}
+
+@app.patch("/users/me/address", summary="Set or update feeder pickup address")
+def update_address(
+    address: str,
+    current: User = Depends(get_current_user)
+):
+    with Session(engine) as session:
+        user_db = session.get(User, current.id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_db.address = address
+        session.add(user_db)
+        session.commit()
+        return {"address": user_db.address}
+
+@app.post("/users/me/id-verification", summary="Upload feeder ID (future-proof)")
+def update_id_verification(
+    id_verification: str,
+    current: User = Depends(get_current_user)
+):
+    with Session(engine) as session:
+        user_db = session.get(User, current.id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_db.id_verification = id_verification
+        session.add(user_db)
+        session.commit()
+        return {"id_verification": user_db.id_verification}
+
+@app.post("/users/me/dishes", response_model=DishRead, summary="Feeder creates new dish")
+def create_dish(
+    dish_in: DishCreate,
+    current: User = Depends(get_current_user),
+):
+    with Session(engine) as session:
+        new_dish = Dish(
+            name=dish_in.name,
+            description=dish_in.description,
+            price=dish_in.price,
+            chef_id=dish_in.chef_id,
+            is_kind=dish_in.is_kind,
+            prep_time=dish_in.prep_time,
+            pickup_available=dish_in.pickup_available,
+            delivery_available=dish_in.delivery_available,
+        )
+        session.add(new_dish)
+        session.commit()
+        session.refresh(new_dish)
+        return new_dish
 
 @app.post(
     "/users/me/favorites/{chef_id}",
@@ -118,10 +194,8 @@ def add_favorite(
     current: User = Depends(get_current_user),
 ):
     with Session(engine) as session:
-        # ensure chef exists
         if not session.get(Chef, chef_id):
             raise HTTPException(status_code=404, detail="Chef not found")
-        # check if already favorited
         exists = session.exec(
             select(UserFavoriteLink).where(
                 (UserFavoriteLink.user_id == current.id)
@@ -132,7 +206,6 @@ def add_favorite(
             link = UserFavoriteLink(user_id=current.id, chef_id=chef_id)
             session.add(link)
             session.commit()
-
 
 @app.delete(
     "/users/me/favorites/{chef_id}",
@@ -154,18 +227,15 @@ def remove_favorite(
             session.delete(link)
             session.commit()
 
-
 @app.get("/chefs", response_model=List[ChefRead])
 def read_chefs():
     with Session(engine) as session:
         return session.exec(select(Chef)).all()
 
-
 @app.get("/chefs/{chef_id}/dishes", response_model=List[DishRead])
 def read_dishes_by_chef(chef_id: int):
     with Session(engine) as session:
         return session.exec(select(Dish).where(Dish.chef_id == chef_id)).all()
-
 
 @app.get("/dishes", response_model=List[DishRead])
 def read_dishes(filter: str = None):

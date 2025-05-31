@@ -25,6 +25,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import RolePickerScreen from './src/screens/RolePickerScreen';
 import FeederOnboardingScreen from './src/screens/FeederOnboardingScreen';
+import MyMealsScreen from './src/screens/MyMealsScreen';
+import AddMealScreen from './src/screens/AddMealScreen';
+import EditMealScreen from './src/screens/EditMealScreen';
 
 const MapStack = createNativeStackNavigator();
 function MapStackScreen() {
@@ -35,6 +38,9 @@ function MapStackScreen() {
       <MapStack.Screen name="DishDetail" component={DishDetailScreen} />
       <MapStack.Screen name="Cart" component={CartScreen} />
       <MapStack.Screen name="Account" component={AccountScreen} />
+      <MapStack.Screen name="MyMeals" component={MyMealsScreen} />
+      <MapStack.Screen name="AddMeal" component={AddMealScreen} />
+      <MapStack.Screen name="EditMeal" component={EditMealScreen} />
     </MapStack.Navigator>
   );
 }
@@ -48,6 +54,9 @@ function FavoriteStackScreen() {
       <FavoriteStack.Screen name="DishDetail" component={DishDetailScreen} />
       <FavoriteStack.Screen name="Cart" component={CartScreen} />
       <FavoriteStack.Screen name="Account" component={AccountScreen} />
+      <FavoriteStack.Screen name="MyMeals" component={MyMealsScreen} />
+      <FavoriteStack.Screen name="AddMeal" component={AddMealScreen} />
+      <FavoriteStack.Screen name="EditMeal" component={EditMealScreen} />
     </FavoriteStack.Navigator>
   );
 }
@@ -61,6 +70,9 @@ function SearchStackScreen() {
       <SearchStack.Screen name="DishDetail" component={DishDetailScreen} />
       <SearchStack.Screen name="Cart" component={CartScreen} />
       <SearchStack.Screen name="Account" component={AccountScreen} />
+      <SearchStack.Screen name="MyMeals" component={MyMealsScreen} />
+      <SearchStack.Screen name="AddMeal" component={AddMealScreen} />
+      <SearchStack.Screen name="EditMeal" component={EditMealScreen} />
     </SearchStack.Navigator>
   );
 }
@@ -157,7 +169,7 @@ function AuthFlow() {
   );
 }
 
-// New: RootNavigator with role picker and feeder onboarding logic
+// RootNavigator with role picker and feeder onboarding logic
 function RootNavigator({ currentTab, currentStack }: { currentTab: string | null, currentStack: string | null }) {
   const { user, token, loading } = useContext(AuthContext);
 

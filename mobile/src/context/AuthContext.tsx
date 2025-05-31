@@ -1,4 +1,5 @@
 // mobile/src/context/AuthContext.tsx
+
 import React, {
   createContext,
   useState,
@@ -22,6 +23,7 @@ interface User {
   active_role?: string | null;
   address?: string | null;
   id_verification?: string | null;
+  chef_id?: number | null; // << Add this!
 }
 
 interface AuthContextType {

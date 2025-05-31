@@ -9,18 +9,27 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/mc_bg.jpg",
-      "resizeMode": "mc_bg.jpg",
+      "resizeMode": "cover",
       "backgroundColor": "#264D3D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow MateChef to access your camera to take food photos.",
+        "NSPhotoLibraryUsageDescription": "Allow MateChef to select meal photos from your library."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

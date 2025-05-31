@@ -1,3 +1,5 @@
+# backend/app/schemas.py
+
 from typing import Optional, List
 from sqlmodel import SQLModel
 
@@ -28,24 +30,13 @@ class UserRead(SQLModel):
     active_role: Optional[str] = None
     address: Optional[str] = None
     id_verification: Optional[str] = None
+    chef_id: Optional[int] = None
 
 class ChefRead(SQLModel):
     id: int
+    user_id: Optional[int]
     name: str
     bio: Optional[str]
-    class Config:
-        from_attributes = True
-
-class DishRead(SQLModel):
-    id: int
-    name: str
-    description: Optional[str]
-    price: float
-    chef_id: int
-    is_kind: Optional[bool] = None
-    prep_time: Optional[int] = None
-    pickup_available: Optional[bool] = None
-    delivery_available: Optional[bool] = None
     class Config:
         from_attributes = True
 
@@ -53,8 +44,22 @@ class DishCreate(SQLModel):
     name: str
     description: Optional[str] = None
     price: float
-    chef_id: int
+    image: Optional[str] = None
     is_kind: Optional[bool] = False
     prep_time: Optional[int] = None
     pickup_available: Optional[bool] = True
     delivery_available: Optional[bool] = False
+
+class DishRead(SQLModel):
+    id: int
+    name: str
+    description: Optional[str]
+    price: float
+    chef_id: int
+    image: Optional[str]
+    is_kind: Optional[bool] = False
+    prep_time: Optional[int] = None
+    pickup_available: Optional[bool] = True
+    delivery_available: Optional[bool] = False
+    class Config:
+        from_attributes = True

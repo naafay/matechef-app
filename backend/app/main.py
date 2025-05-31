@@ -3,7 +3,8 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select, or_
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 
 from .database import engine, init_db
 from .models import User, Chef, Dish, UserFavoriteLink
@@ -135,30 +136,38 @@ def switch_role(
         session.commit()
         return {"active_role": user_db.active_role}
 
+# PATCH address - expects {"address": "..."}
+class AddressUpdate(BaseModel):
+    address: str
+
 @app.patch("/users/me/address", summary="Set or update feeder pickup address")
 def update_address(
-    address: str,
+    body: AddressUpdate,
     current: User = Depends(get_current_user)
 ):
     with Session(engine) as session:
         user_db = session.get(User, current.id)
         if not user_db:
             raise HTTPException(status_code=404, detail="User not found")
-        user_db.address = address
+        user_db.address = body.address
         session.add(user_db)
         session.commit()
         return {"address": user_db.address}
 
+# POST id-verification - expects {"id_verification": "..."}
+class IDVerificationUpdate(BaseModel):
+    id_verification: str
+
 @app.post("/users/me/id-verification", summary="Upload feeder ID (future-proof)")
 def update_id_verification(
-    id_verification: str,
+    body: IDVerificationUpdate,
     current: User = Depends(get_current_user)
 ):
     with Session(engine) as session:
         user_db = session.get(User, current.id)
         if not user_db:
             raise HTTPException(status_code=404, detail="User not found")
-        user_db.id_verification = id_verification
+        user_db.id_verification = body.id_verification
         session.add(user_db)
         session.commit()
         return {"id_verification": user_db.id_verification}

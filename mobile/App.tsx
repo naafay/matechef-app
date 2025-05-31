@@ -23,7 +23,8 @@ import CartScreen from './src/screens/CartScreen';
 import DishDetailScreen from './src/screens/DishDetailScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
-import RolePickerScreen from './src/screens/RolePickerScreen'; // Add this import
+import RolePickerScreen from './src/screens/RolePickerScreen';
+import FeederOnboardingScreen from './src/screens/FeederOnboardingScreen';
 
 const MapStack = createNativeStackNavigator();
 function MapStackScreen() {
@@ -156,7 +157,7 @@ function AuthFlow() {
   );
 }
 
-// New: RootNavigator with role picker logic
+// New: RootNavigator with role picker and feeder onboarding logic
 function RootNavigator({ currentTab, currentStack }: { currentTab: string | null, currentStack: string | null }) {
   const { user, token, loading } = useContext(AuthContext);
 
@@ -178,6 +179,16 @@ function RootNavigator({ currentTab, currentStack }: { currentTab: string | null
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="RolePicker" component={RolePickerScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  // If the user is in feeder mode but hasn't finished onboarding (no address), show onboarding
+  if (user.active_role === 'feeder' && !user.address) {
+    const Stack = createNativeStackNavigator();
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="FeederOnboarding" component={FeederOnboardingScreen} />
       </Stack.Navigator>
     );
   }

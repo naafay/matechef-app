@@ -2,12 +2,10 @@
 
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 
 export default function RolePickerScreen() {
-  const navigation = useNavigation<any>();
   const { token, refreshUser } = useContext(AuthContext);
 
   async function pickRole(role: 'eater' | 'feeder') {
@@ -18,12 +16,11 @@ export default function RolePickerScreen() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role }), // Must be { role: ... }
       });
       if (!res.ok) throw new Error('Failed to set role');
       await refreshUser?.();
-      // Do not reset navigation. RootNavigator will switch automatically
-      // navigation.goBack(); // optional: if RolePicker is on top of Auth stack
+      // No need to navigate; App.tsx will re-render and show the right screen
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }

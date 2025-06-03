@@ -1,7 +1,5 @@
-// mobile/src/components/Header.tsx
-
 import React from 'react';
-import { View, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,35 +13,38 @@ interface HeaderProps {
 export default function Header({ currentTab, currentStack }: HeaderProps) {
   const navigation = useNavigation<any>();
 
+  console.log('[Header] currentTab:', currentTab, 'currentStack:', currentStack);
+
   function handleAccountPress() {
-    if (currentStack === 'Account') {
-      // Determine root screen for current tab
-      let rootScreen = '';
-      switch (currentTab) {
-        case 'MapTab':
-          rootScreen = 'Map';
-          break;
-        case 'FavoriteTab':
-          rootScreen = 'Favorite';
-          break;
-        case 'SearchTab':
-          rootScreen = 'Search';
-          break;
-        case 'OrdersTab':
-          rootScreen = 'Orders';
-          break;
-        case 'ChatTab':
-          rootScreen = 'Chat';
-          break;
-        default:
-          rootScreen = 'Map';
-      }
-      navigation.reset({
-        index: 0,
-        routes: [{ name: rootScreen }],
-      });
-    } else {
+    console.log('[Header] Account icon pressed');
+    console.log('[Header] Navigating to Account at root level');
+    try {
       navigation.navigate('Account');
+    } catch (err: any) {
+      console.error('[Header] Navigation error while going to Account:', err);
+      Alert.alert('Navigation Error', err.message || 'Unexpected error');
+    }
+  }
+
+  function handleCartPress() {
+    console.log('[Header] Cart icon pressed');
+    console.log('[Header] Navigating to Cart at root level');
+    try {
+      navigation.navigate('Cart');
+    } catch (err: any) {
+      console.error('[Header] Navigation error while going to Cart:', err);
+      Alert.alert('Navigation Error', err.message || 'Unexpected error');
+    }
+  }
+
+  function handleNotificationsPress() {
+    console.log('[Header] Notifications icon pressed');
+    console.log('[Header] Navigating to Notifications at root level');
+    try {
+      navigation.navigate('Notifications');
+    } catch (err: any) {
+      console.error('[Header] Navigation error while going to Notifications:', err);
+      Alert.alert('Navigation Error', err.message || 'Unexpected error');
     }
   }
 
@@ -61,16 +62,10 @@ export default function Header({ currentTab, currentStack }: HeaderProps) {
           />
         </View>
         <View style={styles.rightIcons}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Cart')}
-            style={styles.iconButton}
-          >
+          <TouchableOpacity onPress={handleCartPress} style={styles.iconButton}>
             <Ionicons name="cart-outline" size={24} color={Colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Notifications')}
-            style={styles.iconButton}
-          >
+          <TouchableOpacity onPress={handleNotificationsPress} style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>

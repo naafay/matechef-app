@@ -1,5 +1,3 @@
-// mobile/src/screens/AddMealScreen.tsx
-
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -10,6 +8,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -44,8 +43,18 @@ export default function AddMealScreen() {
       });
     }
     if (!result.canceled) {
+      console.log('[AddMealScreen] Image selected:', result.assets[0].uri);
       setImage(result.assets[0].uri);
     }
+  };
+
+  /**
+   * After saving a new meal, go straight back to Feeder → MyMeals.
+   */
+  const goToMyMealsInFeeder = () => {
+    console.log('[AddMealScreen] Navigating to Feeder → MyMeals');
+    navigation.popToTop();
+    navigation.navigate('MyMeals');
   };
 
   const onSave = async () => {
@@ -54,6 +63,7 @@ export default function AddMealScreen() {
       return;
     }
     setLoading(true);
+    console.log('[AddMealScreen] Sending request to add meal');
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -80,16 +90,12 @@ export default function AddMealScreen() {
         body: formData,
       });
       if (!res.ok) throw new Error('Failed to add meal.');
+      console.log('[AddMealScreen] Received successful response');
       await refreshUser?.();
 
-      // Navigate back to MyMeals with refresh (ALWAYS WORKS)
-      const parentNav = navigation.getParent();
-      if (parentNav) {
-        parentNav.navigate('MapTab', { screen: 'MyMeals', params: { refresh: Date.now() } });
-      } else {
-        navigation.navigate('MyMeals', { refresh: Date.now() });
-      }
+      goToMyMealsInFeeder();
     } catch (e: any) {
+      console.error('[AddMealScreen] Error adding meal:', e);
       Alert.alert('Error', e.message || 'Could not add meal');
     }
     setLoading(false);
@@ -112,31 +118,81 @@ export default function AddMealScreen() {
           <Text style={styles.camTxt}>Take Photo</Text>
         </TouchableOpacity>
       </View>
-      <TextInput style={styles.input} placeholder="Meal Name" value={name} onChangeText={setName} />
-      <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} />
-      <TextInput style={styles.input} placeholder="Price (AUD)" keyboardType="numeric" value={price} onChangeText={setPrice} editable={!isKind} />
+      <TextInput
+        style={styles.input}
+        placeholder="Meal Name"
+        value={name}
+        onChangeText={setName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Price (AUD)"
+        keyboardType="numeric"
+        value={price}
+        onChangeText={setPrice}
+        editable={!isKind}
+      />
       <View style={styles.row}>
         <Text style={styles.label}>Kind Meal (Free)?</Text>
         <TouchableOpacity onPress={() => setIsKind(!isKind)} style={styles.checkBox(isKind)}>
           <Text style={styles.label}>{isKind ? '✓' : ''}</Text>
         </TouchableOpacity>
       </View>
-      <TextInput style={styles.input} placeholder="Prep Time (minutes)" keyboardType="numeric" value={prepTime} onChangeText={setPrepTime} />
+      <TextInput
+        style={styles.input}
+        placeholder="Prep Time (minutes)"
+        keyboardType="numeric"
+        value={prepTime}
+        onChangeText={setPrepTime}
+      />
       <View style={styles.row}>
         <Text style={styles.label}>Pickup Available?</Text>
-        <TouchableOpacity onPress={() => setPickupAvailable(!pickupAvailable)} style={styles.checkBox(pickupAvailable)}>
+        <TouchableOpacity
+          onPress={() => setPickupAvailable(!pickupAvailable)}
+          style={styles.checkBox(pickupAvailable)}
+        >
           <Text style={styles.label}>{pickupAvailable ? '✓' : ''}</Text>
         </TouchableOpacity>
         <Text style={[styles.label, { marginLeft: 20 }]}>Delivery Available?</Text>
-        <TouchableOpacity onPress={() => setDeliveryAvailable(!deliveryAvailable)} style={styles.checkBox(deliveryAvailable)}>
+        <TouchableOpacity
+          onPress={() => setDeliveryAvailable(!deliveryAvailable)}
+          style={styles.checkBox(deliveryAvailable)}
+        >
           <Text style={styles.label}>{deliveryAvailable ? '✓' : ''}</Text>
         </TouchableOpacity>
       </View>
       <TouchableOpacity style={styles.button} onPress={onSave} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save Meal'}</Text>
       </TouchableOpacity>
+      {loading && <ActivityIndicator style={{ marginTop: 10 }} color={Colors.primary} />}
     </ScrollView>
   );
+}
+
+async function pickImage(fromCamera = false) {
+  let result;
+  if (fromCamera) {
+    result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+  } else {
+    result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+  }
+  if (!result.canceled && result.assets?.length) {
+    console.log('[AddMealScreen] Image selected:', result.assets[0].uri);
+    return result.assets[0].uri;
+  }
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -152,8 +208,14 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   label: { fontSize: 16, color: Colors.primary, marginRight: 8 },
   checkBox: (checked: boolean) => ({
-    width: 22, height: 22, borderWidth: 1, borderColor: Colors.primary, borderRadius: 4,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: checked ? Colors.primary : '#fff',
+    width: 22,
+    height: 22,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: checked ? Colors.primary : '#fff',
     marginRight: 5,
   }),
   button: { marginTop: 24, backgroundColor: Colors.primary, padding: 14, borderRadius: 8, alignItems: 'center' },

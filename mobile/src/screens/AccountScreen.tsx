@@ -1,3 +1,5 @@
+// mobile/src/screens/AccountScreen.tsx
+
 import React, { useContext, useEffect } from 'react';
 import {
   View,
@@ -21,16 +23,16 @@ export default function AccountScreen() {
   }, [navigation]);
 
   /**
-   * Navigate to the feeder‐only MyMeals stack:
-   *   RootStack → Feeder → MyMeals.
+   * Navigate to the feeder‐only MyMeals stack inside FeederTab:
+   *   MainApp → FeederTab → MyMeals
    */
   function goToMyMeals() {
     console.log('[AccountScreen] goToMyMeals called');
     try {
       navigation.navigate('Feeder', { screen: 'MyMeals' });
-      console.log('[AccountScreen] Called navigation.navigate("Feeder", { screen: "MyMeals" })');
+      console.log('[AccountScreen] Called navigation.navigate("FeederTab", { screen: "MyMeals" })');
     } catch (err: any) {
-      console.error('[AccountScreen] Navigation error to Feeder → MyMeals:', err);
+      console.error('[AccountScreen] Navigation error to FeederTab → MyMeals:', err);
       Alert.alert('Navigation Error', err.message || 'Could not open My Meals');
     }
   }

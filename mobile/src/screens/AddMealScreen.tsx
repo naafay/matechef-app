@@ -1,3 +1,5 @@
+// mobile/src/screens/AddMealScreen.tsx
+
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -15,6 +17,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 
+const API_BASE_URL = 'http://10.0.2.2:8000';
+
 export default function AddMealScreen() {
   const navigation = useNavigation<any>();
   const { token, user, refreshUser } = useContext(AuthContext);
@@ -30,76 +34,83 @@ export default function AddMealScreen() {
   const [loading, setLoading] = useState(false);
 
   const pickImage = async (fromCamera = false) => {
-    let result;
-    if (fromCamera) {
-      result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-    } else {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-    }
-    if (!result.canceled) {
-      console.log('[AddMealScreen] Image selected:', result.assets[0].uri);
-      setImage(result.assets[0].uri);
-    }
-  };
-
-  /**
-   * After saving a new meal, go straight back to Feeder → MyMeals.
-   */
-  const goToMyMealsInFeeder = () => {
-    console.log('[AddMealScreen] Navigating to Feeder → MyMeals');
-    navigation.popToTop();
-    navigation.navigate('MyMeals');
-  };
-
-  const onSave = async () => {
-    if (!name || !description || (!isKind && !price)) {
-      Alert.alert('Error', 'Name, description, and price are required.');
-      return;
-    }
-    setLoading(true);
-    console.log('[AddMealScreen] Sending request to add meal');
     try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('price', isKind ? '0' : price);
-      formData.append('chef_id', user?.chef_id?.toString() || '');
-      formData.append('is_kind', isKind ? 'true' : 'false');
-      formData.append('prep_time', prepTime);
-      formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
-      formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
-      if (image) {
-        // @ts-ignore
-        formData.append('image', {
-          uri: image,
-          name: 'meal.jpg',
-          type: 'image/jpeg',
+      let result;
+      if (fromCamera) {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.7,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.7,
         });
       }
-      const res = await fetch('http://10.0.2.2:8000/users/me/dishes', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Failed to add meal.');
-      console.log('[AddMealScreen] Received successful response');
-      await refreshUser?.();
-
-      goToMyMealsInFeeder();
+      if (!result.canceled && result.assets?.length) {
+        console.log('[AddMealScreen] Image selected:', result.assets[0].uri);
+        setImage(result.assets[0].uri);
+      }
     } catch (e: any) {
-      console.error('[AddMealScreen] Error adding meal:', e);
-      Alert.alert('Error', e.message || 'Could not add meal');
+      Alert.alert('Error', 'Could not pick image.');
+      console.error('[AddMealScreen] pickImage error:', e);
     }
-    setLoading(false);
   };
+
+const onSave = async () => {
+  if (!name || !description || (!isKind && !price)) {
+    Alert.alert('Error', 'Name, description, and price are required.');
+    return;
+  }
+  setLoading(true);
+  console.log('[AddMealScreen] Sending request to add meal');
+  try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('price', isKind ? '0' : price);
+    formData.append('chef_id', user?.chef_id?.toString() || '');
+    formData.append('is_kind', isKind ? 'true' : 'false');
+    formData.append('prep_time', prepTime);
+    formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
+    formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
+    
+    if (image) {
+      formData.append('image', {
+        uri: image,
+        name: 'meal.jpg',
+        type: 'image/jpeg',
+      } as any);
+    }
+
+    const res = await fetch('http://10.0.2.2:8000/users/me/dishes', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('[AddMealScreen] Server response:', errorText);
+      throw new Error(`Failed to add meal: ${errorText}`);
+    }
+
+    console.log('[AddMealScreen] Received successful response');
+    await refreshUser?.();
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],
+    });
+  } catch (e: any) {
+    console.error('[AddMealScreen] Error adding meal:', e);
+    Alert.alert('Error', e.message || 'Could not add meal');
+  }
+  setLoading(false);
+};
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -170,41 +181,38 @@ export default function AddMealScreen() {
       <TouchableOpacity style={styles.button} onPress={onSave} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save Meal'}</Text>
       </TouchableOpacity>
-      {loading && <ActivityIndicator style={{ marginTop: 10 }} color={Colors.primary} />}
+      {loading && <ActivityIndicator style={{ marginTop: 10 }} />}
     </ScrollView>
   );
-}
-
-async function pickImage(fromCamera = false) {
-  let result;
-  if (fromCamera) {
-    result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-    });
-  } else {
-    result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-    });
-  }
-  if (!result.canceled && result.assets?.length) {
-    console.log('[AddMealScreen] Image selected:', result.assets[0].uri);
-    return result.assets[0].uri;
-  }
-  return null;
 }
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: Colors.background },
   title: { fontSize: 26, fontWeight: 'bold', color: Colors.primary, marginBottom: 24, textAlign: 'center' },
   image: { width: 180, height: 120, alignSelf: 'center', borderRadius: 12, marginBottom: 12 },
-  imgPlaceholder: { width: 180, height: 120, backgroundColor: '#eee', alignSelf: 'center', borderRadius: 12, marginBottom: 12, justifyContent: 'center', alignItems: 'center' },
+  imgPlaceholder: {
+    width: 180,
+    height: 120,
+    backgroundColor: '#eee',
+    alignSelf: 'center',
+    borderRadius: 12,
+    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imgText: { color: Colors.textMuted },
   btnRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
   camBtn: { backgroundColor: Colors.primary, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
   camTxt: { color: '#fff' },
-  input: { borderWidth: 1, borderColor: Colors.primary, borderRadius: 6, padding: 12, marginBottom: 12, backgroundColor: '#fff', color: Colors.text },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    color: Colors.text,
+  },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   label: { fontSize: 16, color: Colors.primary, marginRight: 8 },
   checkBox: (checked: boolean) => ({

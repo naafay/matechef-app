@@ -1,14 +1,14 @@
 // mobile/App.tsx
 
 import React, { useContext, useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import {
   NavigationContainer,
   NavigationState,
   createNavigationContainerRef,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // Contexts
@@ -19,7 +19,7 @@ import { CartProvider } from './src/context/CartContext';
 import { Colors } from './src/theme';
 import Header from './src/components/Header';
 
-// Screens: Eater + common
+// Eater + common screens
 import MapScreen from './src/screens/MapScreen';
 import FavoriteScreen from './src/screens/FavoriteScreen';
 import SearchScreen from './src/screens/SearchScreen';
@@ -30,35 +30,34 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import ChefProfileScreen from './src/screens/ChefProfileScreen';
 import DishDetailScreen from './src/screens/DishDetailScreen';
 
-// Screen: Account
+// Account screen
 import AccountScreen from './src/screens/AccountScreen';
 
-// Screens: Auth flow
+// Auth flow screens
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import RolePickerScreen from './src/screens/RolePickerScreen';
 import FeederOnboardingScreen from './src/screens/FeederOnboardingScreen';
 
-// Screens: Feeder flow
+// Feeder flow screens
 import MyMealsScreen from './src/screens/MyMealsScreen';
 import AddMealScreen from './src/screens/AddMealScreen';
 import EditMealScreen from './src/screens/EditMealScreen';
 
-// Create navigators
-const Tab       = createBottomTabNavigator();
+// ─── Navigator definitions ────────────────────────────────────────────────────
+
+const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
-const MapStack  = createNativeStackNavigator();
+const MapStack = createNativeStackNavigator();
 const FavoriteStack = createNativeStackNavigator();
-const SearchStack   = createNativeStackNavigator();
-const OrdersStack   = createNativeStackNavigator();
-const ChatStack     = createNativeStackNavigator();
-const FeederStack   = createNativeStackNavigator();
+const SearchStack = createNativeStackNavigator();
+const OrdersStack = createNativeStackNavigator();
+const ChatStack = createNativeStackNavigator();
+const FeederStack = createNativeStackNavigator();
 
-// Create a navigation ref so we can reset from anywhere
+// Create a navigation ref so we can “reset” from anywhere:
 export const navigationRef = createNavigationContainerRef<any>();
-
-/** Utility to reset to a given top‐level route name. */
 function resetToRoute(name: string, params?: object) {
   if (navigationRef.isReady()) {
     navigationRef.reset({
@@ -68,9 +67,8 @@ function resetToRoute(name: string, params?: object) {
   }
 }
 
-/** ----- Tab Stack Screens ----- */
+/** ─── “Eater” tab stacks ──────────────────────────────────────────────────── **/
 
-/** Map tab’s stack: Map, Profile, DishDetail. */
 function MapStackScreen() {
   return (
     <MapStack.Navigator screenOptions={{ headerShown: false }}>
@@ -81,7 +79,6 @@ function MapStackScreen() {
   );
 }
 
-/** Favorite tab’s stack. */
 function FavoriteStackScreen() {
   return (
     <FavoriteStack.Navigator screenOptions={{ headerShown: false }}>
@@ -92,7 +89,6 @@ function FavoriteStackScreen() {
   );
 }
 
-/** Search tab’s stack. */
 function SearchStackScreen() {
   return (
     <SearchStack.Navigator screenOptions={{ headerShown: false }}>
@@ -103,7 +99,6 @@ function SearchStackScreen() {
   );
 }
 
-/** Orders tab’s stack. */
 function OrdersStackScreen() {
   return (
     <OrdersStack.Navigator screenOptions={{ headerShown: false }}>
@@ -112,7 +107,6 @@ function OrdersStackScreen() {
   );
 }
 
-/** Chat tab’s stack. */
 function ChatStackScreen() {
   return (
     <ChatStack.Navigator screenOptions={{ headerShown: false }}>
@@ -121,50 +115,178 @@ function ChatStackScreen() {
   );
 }
 
-/** Bottom tabs navigator (eater side). Does NOT include feeder screens. */
+/** ─── Feeder flow (MyMeals/Add/Edit) ─────────────────────────────────────── **/
+
+function FeederStackScreen() {
+  return (
+    <FeederStack.Navigator screenOptions={{ headerShown: false }}>
+      <FeederStack.Screen name="MyMeals" component={MyMealsScreen} />
+      <FeederStack.Screen name="AddMeal" component={AddMealScreen} />
+      <FeederStack.Screen name="EditMeal" component={EditMealScreen} />
+    </FeederStack.Navigator>
+  );
+}
+
+/** ─── Custom Tab Bar: only render visible tabs (no ghost slots) ──────────── **/
+
+const VISIBLE_TABS = ['MapTab', 'FavoriteTab', 'SearchTab', 'OrdersTab', 'ChatTab'];
+
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  return (
+    <View style={{ flexDirection: 'row', backgroundColor: Colors.background, borderTopWidth: 0.5, borderTopColor: '#eee', height: 60 }}>
+      {state.routes.map((route, index) => {
+        if (!VISIBLE_TABS.includes(route.name)) return null;
+
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+
+        let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
+        switch (route.name) {
+          case 'MapTab':
+            iconName = isFocused ? 'location' : 'location-outline';
+            break;
+          case 'FavoriteTab':
+            iconName = isFocused ? 'heart' : 'heart-outline';
+            break;
+          case 'SearchTab':
+            iconName = isFocused ? 'search' : 'search-outline';
+            break;
+          case 'OrdersTab':
+            iconName = isFocused ? 'list' : 'list-outline';
+            break;
+          case 'ChatTab':
+            iconName = isFocused ? 'chatbubble' : 'chatbubble-outline';
+            break;
+        }
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            onPress={onPress}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={iconName}
+              size={28}
+              color={isFocused ? Colors.primary : Colors.textMuted}
+            />
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+/** ─── Bottom‐tab navigator (MapTab, FavoriteTab, SearchTab, OrdersTab, ChatTab, Account, Cart, Notifications, Feeder) ────────────────────────────────────── **/
+
 function MainTabs() {
   return (
     <Tab.Navigator
       initialRouteName="MapTab"
-      screenOptions={({ route }) => ({
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarStyle: { backgroundColor: Colors.background },
-        tabBarIcon: ({ color, size }) => {
-          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'ellipse';
-          switch (route.name) {
-            case 'MapTab':
-              iconName = color === Colors.primary ? 'location' : 'location-outline';
-              break;
-            case 'FavoriteTab':
-              iconName = color === Colors.primary ? 'heart' : 'heart-outline';
-              break;
-            case 'SearchTab':
-              iconName = color === Colors.primary ? 'search' : 'search-outline';
-              break;
-            case 'OrdersTab':
-              iconName = color === Colors.primary ? 'list' : 'list-outline';
-              break;
-            case 'ChatTab':
-              iconName = color === Colors.primary ? 'chatbubble' : 'chatbubble-outline';
-              break;
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      }}
     >
-      <Tab.Screen name="MapTab" component={MapStackScreen} />
-      <Tab.Screen name="FavoriteTab" component={FavoriteStackScreen} />
-      <Tab.Screen name="SearchTab" component={SearchStackScreen} />
-      <Tab.Screen name="OrdersTab" component={OrdersStackScreen} />
-      <Tab.Screen name="ChatTab" component={ChatStackScreen} />
+      {/* Visible Tabs */}
+      <Tab.Screen name="MapTab">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="MapTab" currentStack={null} />
+            <MapStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="FavoriteTab">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="FavoriteTab" currentStack={null} />
+            <FavoriteStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="SearchTab">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="SearchTab" currentStack={null} />
+            <SearchStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="OrdersTab">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="OrdersTab" currentStack={null} />
+            <OrdersStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="ChatTab">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="ChatTab" currentStack={null} />
+            <ChatStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
+
+      {/* Hidden Tabs (no visible buttons, but tab bar stays visible on navigation) */}
+      <Tab.Screen name="Account">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="Account" currentStack={null} />
+            <AccountScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Cart">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="Cart" currentStack={null} />
+            <CartScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Notifications">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="Notifications" currentStack={null} />
+            <NotificationsScreen />
+          </View>
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Feeder">
+        {() => (
+          <View style={{ flex: 1 }}>
+            <Header currentTab="Feeder" currentStack={null} />
+            <FeederStackScreen />
+          </View>
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
-/** Auth flow: Login & Signup. */
+/** ─── Auth flow (Login/Signup) ───────────────────────────────────────────── **/
+
 function AuthFlow() {
   return (
     <AuthStack.Navigator
@@ -179,35 +301,8 @@ function AuthFlow() {
   );
 }
 
-/** Feeder flow: MyMeals, AddMeal, EditMeal. */
-function FeederStackScreen() {
-  return (
-    <FeederStack.Navigator screenOptions={{ headerShown: false }}>
-      <FeederStack.Screen name="MyMeals" component={MyMealsScreen} />
-      <FeederStack.Screen name="AddMeal" component={AddMealScreen} />
-      <FeederStack.Screen name="EditMeal" component={EditMealScreen} />
-    </FeederStack.Navigator>
-  );
-}
+/** ─── Simple Splash screen while we decide where to send the user ───────── */
 
-/** Wraps Header + MainTabs so we can render them inside RootStack when logged in. */
-function MainAppContainer({
-  currentTab,
-  currentStack,
-}: {
-  currentTab: string | null;
-  currentStack: string | null;
-}) {
-  console.log('[MainAppContainer] currentTab:', currentTab, 'currentStack:', currentStack);
-  return (
-    <View style={{ flex: 1 }}>
-      <Header currentTab={currentTab} currentStack={currentStack} />
-      <MainTabs />
-    </View>
-  );
-}
-
-/** A simple splash screen while deciding where to route. */
 function SplashScreen() {
   return (
     <View style={styles.loader}>
@@ -216,25 +311,9 @@ function SplashScreen() {
   );
 }
 
-/**
- * RootStack: contains all top-level routes:
- *  1) Splash
- *  2) Auth
- *  3) RolePicker
- *  4) FeederOnboarding
- *  5) MainApp (tabs + header)
- *  6) Account
- *  7) Cart
- *  8) Notifications
- *  9) Feeder (feeder-only stack)
- */
-function RootStackScreen({
-  currentTab,
-  currentStack,
-}: {
-  currentTab: string | null;
-  currentStack: string | null;
-}) {
+/** ─── RootStack: Splash → Auth → RolePicker → FeederOnboarding → MainTabs ─ */
+
+function RootStackScreen() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Splash" component={SplashScreen} />
@@ -245,72 +324,29 @@ function RootStackScreen({
         component={FeederOnboardingScreen}
       />
       <RootStack.Screen name="MainApp">
-        {() => (
-          <MainAppContainer
-            currentTab={currentTab}
-            currentStack={currentStack}
-          />
-        )}
-      </RootStack.Screen>
-
-      {/*
-        Account route now wrapped with Header above AccountScreen
-      */}
-      <RootStack.Screen name="Account">
-        {() => (
-          <View style={{ flex: 1 }}>
-            <Header currentTab={currentTab} currentStack={currentStack} />
-            <AccountScreen />
-          </View>
-        )}
-      </RootStack.Screen>
-
-      <RootStack.Screen name="Cart" component={CartScreen} />
-      <RootStack.Screen name="Notifications" component={NotificationsScreen} />
-
-      {/*
-        Feeder route now also wrapped with Header above the FeederStackScreen.
-        That ensures MyMeals, AddMeal, and EditMeal all display the Header.
-      */}
-      <RootStack.Screen name="Feeder">
-        {() => (
-          <View style={{ flex: 1 }}>
-            <Header currentTab={currentTab} currentStack={currentStack} />
-            <FeederStackScreen />
-          </View>
-        )}
+        {() => <MainTabs />}
       </RootStack.Screen>
     </RootStack.Navigator>
   );
 }
 
-// Refs to hold currentTab/currentStack so Header can read them
-const currentTabRef = { current: null as string | null };
-const currentStackRef = { current: null as string | null };
+/** ─── NavigationRoot: called inside AuthProvider so useContext(AuthContext) works ───────── **/
 
-/**
- * NavigationRoot is a child of AuthProvider, so useContext(AuthContext) sees real values.
- */
 function NavigationRoot() {
   const { user, token, loading } = useContext(AuthContext);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
 
-  /**
-   * Once navigation is ready and any time loading/token/user changes,
-   * decide whether to reset. But if the current deepest route is one of
-   * the feeder screens, skip the reset.
-   */
   useEffect(() => {
     if (!navigationRef.isReady()) return;
-    console.log('[NavigationRoot] user/token/loading changed →', { loading, token, user });
+    console.log('[NavigationRoot] user/token/loading →', { loading, token, user });
 
-    // Determine deepest active route name
+    // Figure out the deepest screen name
     const deepest = navigationRef.getCurrentRoute()?.name;
-    console.log('[NavigationRoot] deepest active route:', deepest);
+    console.log('[NavigationRoot] Deepest active route:', deepest);
 
-    // If we are already inside one of the feeder screens, skip resetting
+    // If we’re already in one of the feeder screens, do NOT forcibly reset
     if (deepest === 'MyMeals' || deepest === 'AddMeal' || deepest === 'EditMeal') {
-      console.log('[NavigationRoot] Already inside feeder flow; skipping reset.');
+      console.log('[NavigationRoot] In feeder flow already; skipping reset.');
       return;
     }
 
@@ -325,57 +361,10 @@ function NavigationRoot() {
     } else {
       resetToRoute('MainApp');
     }
-  }, [loading, token, user, isNavigationReady]);
+  }, [user, token, loading, isNavigationReady]);
 
-  /**
-   * Whenever the navigation state changes, update currentTabRef/currentStackRef.
-   */
   const handleStateChange = (state: NavigationState | undefined) => {
     console.log('[NavigationRoot] NavigationState changed:', JSON.stringify(state, null, 2));
-    if (!state || !state.routes || state.routes.length === 0) {
-      currentTabRef.current = null;
-      currentStackRef.current = null;
-      return;
-    }
-
-    // Top-level route name: Splash, Auth, RolePicker, MainApp, Account, Cart, Notifications, Feeder
-    const topRoute = state.routes[state.index];
-    console.log('[NavigationRoot] Top-level route:', topRoute.name);
-
-    if (topRoute.name !== 'MainApp') {
-      currentTabRef.current = null;
-      currentStackRef.current = null;
-      return;
-    }
-
-    // We are inside MainApp → the Tab navigator
-    const tabState = topRoute.state as NavigationState | undefined;
-    if (!tabState || !tabState.routes || tabState.routes.length === 0) {
-      currentTabRef.current = null;
-      currentStackRef.current = null;
-      return;
-    }
-
-    // Active tab route (MapTab, FavoriteTab, etc.)
-    const activeTabRoute = tabState.routes[tabState.index];
-    console.log('[NavigationRoot] Active tab route:', activeTabRoute.name);
-    currentTabRef.current = activeTabRoute.name;
-
-    // If that tab has nested state, find the deepest nested route
-    if (activeTabRoute.state) {
-      let nested = activeTabRoute.state as NavigationState;
-      while (nested.routes[nested.index].state) {
-        nested = nested.routes[nested.index].state as NavigationState;
-      }
-      console.log(
-        '[NavigationRoot] Deepest nested route in tab:',
-        nested.routes[nested.index].name
-      );
-      currentStackRef.current = nested.routes[nested.index].name;
-    } else {
-      console.log('[NavigationRoot] No nested state. currentStack =', activeTabRoute.name);
-      currentStackRef.current = activeTabRoute.name;
-    }
   };
 
   return (
@@ -387,13 +376,12 @@ function NavigationRoot() {
       }}
       onStateChange={handleStateChange}
     >
-      <RootStackScreen
-        currentTab={currentTabRef.current}
-        currentStack={currentStackRef.current}
-      />
+      <RootStackScreen />
     </NavigationContainer>
   );
 }
+
+/** ─── “App” only wraps everything in AuthProvider & CartProvider ───────────── */
 
 export default function App() {
   return (

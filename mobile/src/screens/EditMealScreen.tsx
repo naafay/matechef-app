@@ -32,15 +32,15 @@ export default function EditMealScreen() {
   const { user, token, refreshUser } = useContext(AuthContext);
   const meal       = route.params?.meal;
 
-  const [name, setName]                     = useState(meal?.name || '');
-  const [description, setDescription]       = useState(meal?.description || '');
-  const [price, setPrice]                   = useState(meal?.price ? String(meal.price) : '');
-  const [image, setImage]                   = useState(meal?.image || null);
-  const [isKind, setIsKind]                 = useState(meal?.is_kind || false);
-  const [prepTime, setPrepTime]             = useState(meal?.prep_time ? String(meal.prep_time) : '');
-  const [pickupAvailable, setPickupAvailable]     = useState(meal?.pickup_available ?? true);
+  const [name, setName]                         = useState(meal?.name || '');
+  const [description, setDescription]           = useState(meal?.description || '');
+  const [price, setPrice]                       = useState(meal?.price ? String(meal.price) : '');
+  const [image, setImage]                       = useState<string | null>(meal?.image || null);
+  const [isKind, setIsKind]                     = useState(meal?.is_kind || false);
+  const [prepTime, setPrepTime]                 = useState(meal?.prep_time ? String(meal.prep_time) : '');
+  const [pickupAvailable, setPickupAvailable]   = useState(meal?.pickup_available ?? true);
   const [deliveryAvailable, setDeliveryAvailable] = useState(meal?.delivery_available ?? false);
-  const [loading, setLoading]               = useState(false);
+  const [loading, setLoading]                   = useState(false);
 
   const pickImage = async (fromCamera = false) => {
     try {
@@ -56,7 +56,7 @@ export default function EditMealScreen() {
           quality: 0.7,
         });
       }
-      if (!result.canceled) {
+      if (!result.canceled && result.assets?.length) {
         console.log('[EditMealScreen] Image selected:', result.assets[0].uri);
         setImage(result.assets[0].uri);
       }
@@ -83,6 +83,7 @@ export default function EditMealScreen() {
       formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
       formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
 
+      // Only upload if it's a new local file
       if (image && image !== meal?.image && image.startsWith('file:')) {
         // @ts-ignore
         formData.append('image', {
@@ -102,6 +103,7 @@ export default function EditMealScreen() {
       if (!res.ok) throw new Error('Failed to update meal.');
       await refreshUser?.();
 
+      // After saving, reset into Feeder → MyMeals (use "Feeder", not "FeederTab")
       navigation.reset({
         index: 0,
         routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],
@@ -128,6 +130,8 @@ export default function EditMealScreen() {
             });
             if (!resp.ok) throw new Error('Failed to delete meal');
             await refreshUser?.();
+
+            // After deletion, also reset into Feeder → MyMeals
             navigation.reset({
               index: 0,
               routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],

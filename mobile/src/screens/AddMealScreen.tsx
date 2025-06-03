@@ -30,7 +30,6 @@ export default function AddMealScreen() {
   const [deliveryAvailable, setDeliveryAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Image Picker logic
   const pickImage = async (fromCamera = false) => {
     let result;
     if (fromCamera) {
@@ -56,7 +55,6 @@ export default function AddMealScreen() {
     }
     setLoading(true);
     try {
-      // Build form data
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
@@ -83,10 +81,14 @@ export default function AddMealScreen() {
       });
       if (!res.ok) throw new Error('Failed to add meal.');
       await refreshUser?.();
-      navigation.reset({ index: 1, routes: [
-        { name: 'Map' }, 
-        { name: 'MyMeals', params: { refresh: Date.now() } }
-      ]});
+
+      // Navigate back to MyMeals with refresh (ALWAYS WORKS)
+      const parentNav = navigation.getParent();
+      if (parentNav) {
+        parentNav.navigate('MapTab', { screen: 'MyMeals', params: { refresh: Date.now() } });
+      } else {
+        navigation.navigate('MyMeals', { refresh: Date.now() });
+      }
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not add meal');
     }
@@ -110,39 +112,16 @@ export default function AddMealScreen() {
           <Text style={styles.camTxt}>Take Photo</Text>
         </TouchableOpacity>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Meal Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Price (AUD)"
-        keyboardType="numeric"
-        value={price}
-        onChangeText={setPrice}
-        editable={!isKind}
-      />
+      <TextInput style={styles.input} placeholder="Meal Name" value={name} onChangeText={setName} />
+      <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} />
+      <TextInput style={styles.input} placeholder="Price (AUD)" keyboardType="numeric" value={price} onChangeText={setPrice} editable={!isKind} />
       <View style={styles.row}>
         <Text style={styles.label}>Kind Meal (Free)?</Text>
         <TouchableOpacity onPress={() => setIsKind(!isKind)} style={styles.checkBox(isKind)}>
           <Text style={styles.label}>{isKind ? '✓' : ''}</Text>
         </TouchableOpacity>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Prep Time (minutes)"
-        keyboardType="numeric"
-        value={prepTime}
-        onChangeText={setPrepTime}
-      />
+      <TextInput style={styles.input} placeholder="Prep Time (minutes)" keyboardType="numeric" value={prepTime} onChangeText={setPrepTime} />
       <View style={styles.row}>
         <Text style={styles.label}>Pickup Available?</Text>
         <TouchableOpacity onPress={() => setPickupAvailable(!pickupAvailable)} style={styles.checkBox(pickupAvailable)}>

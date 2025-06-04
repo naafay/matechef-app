@@ -1,5 +1,4 @@
 // mobile/src/screens/BrowseScreen.tsx
-// BrowseScreen: fetches and displays the list of chefs from your backend
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -11,10 +10,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../App';
 import { getChefs, Chef } from '../api/chefs';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Browse'>;
+type Props = {
+  navigation: any;
+};
 
 export default function BrowseScreen({ navigation }: Props) {
   const [chefs, setChefs] = useState<Chef[]>([]);
@@ -60,13 +60,9 @@ export default function BrowseScreen({ navigation }: Props) {
 
       {loading && <ActivityIndicator style={styles.loader} size="large" />}
 
-      {!loading && error && (
-        <Text style={styles.error}>Error: {error}</Text>
-      )}
+      {!loading && error && <Text style={styles.error}>Error: {error}</Text>}
 
-      {!loading && !error && chefs.length === 0 && (
-        <Text style={styles.empty}>No chefs found.</Text>
-      )}
+      {!loading && !error && chefs.length === 0 && <Text style={styles.empty}>No chefs found.</Text>}
 
       {!loading && !error && chefs.length > 0 && (
         <FlatList
@@ -75,9 +71,7 @@ export default function BrowseScreen({ navigation }: Props) {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.item}
-              onPress={() =>
-                navigation.navigate('Profile', { chefId: item.id })
-              }
+              onPress={() => navigation.navigate('Profile', { chefId: item.id })}
             >
               <Text style={styles.itemText}>{item.name}</Text>
             </TouchableOpacity>

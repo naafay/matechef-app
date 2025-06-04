@@ -126,22 +126,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Refresh user details
-  async function refreshUser() {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const userData = await res.json();
+async function refreshUser() {
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const userData = await res.json();
+      if (JSON.stringify(userData) !== JSON.stringify(user)) {
         setUser(userData);
       }
-    } catch {
-      // silent fail
     }
-    setLoading(false);
+  } catch (e) {
+    console.error('[AuthContext] refreshUser error:', e);
   }
+}
 
   return (
     <AuthContext.Provider value={{ token, user, loading, login, logout, refreshUser }}>

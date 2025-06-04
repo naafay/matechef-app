@@ -43,18 +43,18 @@ const FIRST_LAYER: FilterOption[] = [
   { key: 'ready', label: 'Ready-to-go' },
 ];
 
-const GOLD_PIN  = require('../../assets/marker-gold.png');
+const GOLD_PIN = require('../../assets/marker-gold.png');
 const GREEN_PIN = require('../../assets/marker-green.png');
 
 export default function MapScreen() {
   const navigation = useNavigation<any>();
 
-  const [firstFilter, setFirstFilter]       = useState<string>('top');
-  const [chefs, setChefs]                   = useState<Chef[]>([]);
-  const [dishCounts, setDishCounts]         = useState<Record<number, Dish[]>>({});
-  const [loading, setLoading]               = useState<boolean>(true);
-  const [error, setError]                   = useState<string | null>(null);
-  const [region, setRegion]                 = useState<Region>(INITIAL_REGION);
+  const [firstFilter, setFirstFilter] = useState<string>('top');
+  const [chefs, setChefs] = useState<Chef[]>([]);
+  const [dishCounts, setDishCounts] = useState<Record<number, Dish[]>>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [region, setRegion] = useState<Region>(INITIAL_REGION);
   const [selectedChefId, setSelectedChefId] = useState<number | null>(null);
   const [selectedDishes, setSelectedDishes] = useState<Dish[]>([]);
 
@@ -70,7 +70,7 @@ export default function MapScreen() {
 
         const counts: Record<number, Dish[]> = {};
         await Promise.all(
-          cs.map(async chef => {
+          cs.map(async (chef) => {
             counts[chef.id] = await getChefDishes(chef.id);
           })
         );
@@ -82,7 +82,9 @@ export default function MapScreen() {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -94,20 +96,18 @@ export default function MapScreen() {
   }, [selectedChefId, dishCounts]);
 
   const applyFirst = (chef: Chef) =>
-    firstFilter === 'ready'
-      ? (dishCounts[chef.id] || []).length > 0
-      : true;
+    firstFilter === 'ready' ? (dishCounts[chef.id] || []).length > 0 : true;
 
-  const visibleChefs = chefs.filter(chef => {
+  const visibleChefs = chefs.filter((chef) => {
     const loc = LOCATIONS[chef.id];
     if (!loc || !applyFirst(chef)) return false;
-    const latMin = region.latitude  - region.latitudeDelta  / 2;
-    const latMax = region.latitude  + region.latitudeDelta  / 2;
+    const latMin = region.latitude - region.latitudeDelta / 2;
+    const latMax = region.latitude + region.latitudeDelta / 2;
     const lonMin = region.longitude - region.longitudeDelta / 2;
     const lonMax = region.longitude + region.longitudeDelta / 2;
     return (
-      loc.latitude  >= latMin &&
-      loc.latitude  <= latMax &&
+      loc.latitude >= latMin &&
+      loc.latitude <= latMax &&
       loc.longitude >= lonMin &&
       loc.longitude <= lonMax
     );
@@ -142,7 +142,7 @@ export default function MapScreen() {
             onRegionChangeComplete={setRegion}
             onPress={() => setSelectedChefId(null)} // Hides panel on map press
           >
-            {visibleChefs.map(chef => {
+            {visibleChefs.map((chef) => {
               const loc = LOCATIONS[chef.id]!;
               const isSelected = selectedChefId === chef.id;
               return (
@@ -150,8 +150,10 @@ export default function MapScreen() {
                   key={chef.id}
                   coordinate={loc}
                   image={isSelected ? GREEN_PIN : GOLD_PIN}
-                  ref={ref => { markerRefs.current[chef.id] = ref; }}
-                  onPress={e => {
+                  ref={(ref) => {
+                    markerRefs.current[chef.id] = ref;
+                  }}
+                  onPress={(e) => {
                     e.stopPropagation(); // Prevents map onPress firing too
                     setSelectedChefId(chef.id);
                   }}
@@ -165,17 +167,19 @@ export default function MapScreen() {
             <View style={styles.bottomPanel}>
               <View style={styles.panelHeader}>
                 <Text style={styles.panelChefName}>
-                  {chefs.find(c => c.id === selectedChefId)?.name || 'Chef'}
+                  {chefs.find((c) => c.id === selectedChefId)?.name || 'Chef'}
                 </Text>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile', { chefId: selectedChefId })}
+                  onPress={() =>
+                    navigation.navigate('Profile', { chefId: selectedChefId })
+                  }
                 >
                   <Text style={styles.panelViewProfile}>View Profile</Text>
                 </TouchableOpacity>
               </View>
               <FlatList
                 data={selectedDishes}
-                keyExtractor={item => item.id.toString()}
+                keyExtractor={(item) => item.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingVertical: 6 }}

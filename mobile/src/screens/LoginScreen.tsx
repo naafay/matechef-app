@@ -1,4 +1,5 @@
 // mobile/src/screens/LoginScreen.tsx
+
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -15,7 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 import { Colors } from '../theme';
 
-type LoginNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+type LoginNavProp = NativeStackNavigationProp<RootStackParamList, 'AuthStack'>;
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);

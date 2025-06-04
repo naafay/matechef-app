@@ -1,5 +1,4 @@
-// CartScreen.tsx
-// Lists items in the cart with remove buttons and a checkout footer
+// mobile/src/screens/CartScreen.tsx
 
 import React from 'react';
 import {
@@ -9,13 +8,10 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCart } from '../context/CartContext';
-import { RootStackParamList } from '../../App';
+import { Colors } from '../theme';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
-
-export default function CartScreen({ navigation }: Props) {
+export default function CartScreen() {
   const { items, removeItem, clearCart } = useCart();
 
   // Calculate total
@@ -38,12 +34,8 @@ export default function CartScreen({ navigation }: Props) {
                   <Text style={styles.name}>
                     {item.name} x{item.quantity}
                   </Text>
-                  <Text style={styles.sub}>
-                    Chef: {item.chef}
-                  </Text>
-                  <Text style={styles.sub}>
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </Text>
+                  <Text style={styles.sub}>Chef: {item.chef}</Text>
+                  <Text style={styles.sub}>${(item.price * item.quantity).toFixed(2)}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.remove}
@@ -63,7 +55,6 @@ export default function CartScreen({ navigation }: Props) {
               onPress={() => {
                 // TODO: integrate real checkout flow
                 clearCart();
-                navigation.goBack();
               }}
             >
               <Text style={styles.checkoutText}>Checkout</Text>
@@ -108,7 +99,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   removeText: { color: '#d00' },
-
   footer: {
     borderTopWidth: 1,
     borderColor: '#eee',

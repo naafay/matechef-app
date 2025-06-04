@@ -1,4 +1,5 @@
 // mobile/src/screens/DishDetailScreen.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,15 +10,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackParamList } from '../../App';
-import { getChefs, Chef } from '../api/chefs';
 import { useCart } from '../context/CartContext';
+import { getChefs, Chef } from '../api/chefs';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'DishDetail'>;
+type DishDetailScreenProps = {
+  route: {
+    params: {
+      dish: any;
+    };
+  };
+  navigation: any;
+};
 
-export default function DishDetailScreen({ route, navigation }: Props) {
+export default function DishDetailScreen({ route, navigation }: DishDetailScreenProps) {
   const insets = useSafeAreaInsets();
   const { dish } = route.params;
   const [chef, setChef] = useState<Chef | null>(null);
@@ -27,16 +35,18 @@ export default function DishDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     let mounted = true;
     getChefs()
-      .then(all => {
+      .then((all) => {
         if (!mounted) return;
-        const found = all.find(c => c.id === dish.chef_id) || null;
+        const found = all.find((c) => c.id === dish.chef_id) || null;
         setChef(found);
       })
-      .catch(e => console.error('[DishDetail] getChefs error', e))
+      .catch((e) => console.error('[DishDetail] getChefs error', e))
       .finally(() => {
         if (mounted) setLoadingChef(false);
       });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [dish.chef_id]);
 
   return (
@@ -66,9 +76,7 @@ export default function DishDetailScreen({ route, navigation }: Props) {
             <ActivityIndicator size="small" />
           ) : chef ? (
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('Profile', { chefId: chef.id })
-              }
+              onPress={() => navigation.navigate('Profile', { chefId: chef.id })}
             >
               <Text style={styles.chefLink}>{chef.name}</Text>
             </TouchableOpacity>

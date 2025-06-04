@@ -1,6 +1,4 @@
-// mobile/src/screens/EditMealScreen.tsx
-
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +10,12 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+  ParamListBase,
+} from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,20 +30,36 @@ function getImageUrl(imagePath?: string | null): string | null {
 }
 
 export default function EditMealScreen() {
-  const navigation = useNavigation<any>();
-  const route      = useRoute<any>();
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const route = useRoute<any>();
   const { user, token, refreshUser } = useContext(AuthContext);
-  const meal       = route.params?.meal;
+  const meal = route.params?.meal;
 
-  const [name, setName]                         = useState(meal?.name || '');
-  const [description, setDescription]           = useState(meal?.description || '');
-  const [price, setPrice]                       = useState(meal?.price ? String(meal.price) : '');
-  const [image, setImage]                       = useState<string | null>(meal?.image || null);
-  const [isKind, setIsKind]                     = useState(meal?.is_kind || false);
-  const [prepTime, setPrepTime]                 = useState(meal?.prep_time ? String(meal.prep_time) : '');
-  const [pickupAvailable, setPickupAvailable]   = useState(meal?.pickup_available ?? true);
+  const [name, setName] = useState(meal?.name || '');
+  const [description, setDescription] = useState(meal?.description || '');
+  const [price, setPrice] = useState(meal?.price ? String(meal.price) : '');
+  const [image, setImage] = useState<string | null>(meal?.image || null);
+  const [isKind, setIsKind] = useState(meal?.is_kind || false);
+  const [prepTime, setPrepTime] = useState(meal?.prep_time ? String(meal.prep_time) : '');
+  const [pickupAvailable, setPickupAvailable] = useState(meal?.pickup_available ?? true);
   const [deliveryAvailable, setDeliveryAvailable] = useState(meal?.delivery_available ?? false);
-  const [loading, setLoading]                   = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // (A) Log full nav state and confirm the tab parent
+  useEffect(() => {
+    console.log('[EditMealScreen] Mounted. Full navigation state:');
+    console.log(JSON.stringify(navigation.getState(), null, 2));
+
+    const tabNav = navigation.getParent();
+    if (tabNav) {
+      console.log(
+        '[EditMealScreen] Parent (Tab) routeNames:',
+        JSON.stringify(tabNav.getState().routeNames)
+      );
+    } else {
+      console.warn('[EditMealScreen] Could not find parent Tab navigator.');
+    }
+  }, []);
 
   const pickImage = async (fromCamera = false) => {
     try {
@@ -66,85 +85,124 @@ export default function EditMealScreen() {
     }
   };
 
-  const onSave = async () => {
-    if (!name || !description || (!isKind && !price)) {
-      Alert.alert('Error', 'Name, description, and price are required.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('price', isKind ? '0' : price);
-      formData.append('chef_id', user?.chef_id?.toString() || '');
-      formData.append('is_kind', isKind ? 'true' : 'false');
-      formData.append('prep_time', prepTime);
-      formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
-      formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
+const onSave = async () => {
+  if (!name || !description || (!isKind && !price)) {
+    Alert.alert('Error', 'Name, description, and price are required.');
+    return;
+  }
+  if (!token) {
+    Alert.alert('Error', 'You must be logged in to edit a meal.');
+    return;
+  }
+  setLoading(true);
 
-      // Only upload if it's a new local file
-      if (image && image !== meal?.image && image.startsWith('file:')) {
-        // @ts-ignore
-        formData.append('image', {
-          uri: image,
-          name: 'meal.jpg',
-          type: 'image/jpeg',
-        });
-      }
+  try {
+    console.log('[EditMealScreen] Sending PATCH to /dishes/', meal.id);
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('price', isKind ? '0' : price);
+    formData.append('chef_id', user?.chef_id?.toString() || '');
+    formData.append('is_kind', isKind ? 'true' : 'false');
+    formData.append('prep_time', prepTime);
+    formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
+    formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
 
-      const res = await fetch(`${API_BASE_URL}/dishes/${meal.id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+    if (image && image !== meal?.image && image.startsWith('file:')) {
+      formData.append('image', {
+        uri: image,
+        name: 'meal.jpg',
+        type: 'image/jpeg',
       });
-      if (!res.ok) throw new Error('Failed to update meal.');
-      await refreshUser?.();
+    }
 
-      // After saving, reset into Feeder → MyMeals (use "Feeder", not "FeederTab")
-      navigation.reset({
+    const res = await fetch(`${API_BASE_URL}/dishes/${meal.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('[EditMealScreen] Server response:', errorText);
+      throw new Error(`Failed to update meal: ${errorText}`);
+    }
+    console.log('[EditMealScreen] Successful PATCH response');
+    await refreshUser();
+    //Alert.alert('Success', 'Meal updated successfully!');
+
+    // Navigate to MyMeals tab and MyMealsList screen
+    const tabNav = navigation.getParent();
+    console.log('[EditMealScreen] Before navigation. Tab state:', JSON.stringify(tabNav?.getState(), null, 2));
+    if (!tabNav) {
+      console.error('[EditMealScreen] Could not find Tab navigator');
+      navigation.navigate('MyMealsList');
+    } else {
+      console.log('[EditMealScreen] Resetting to MyMeals tab, MyMealsList screen');
+      tabNav.reset({
         index: 0,
-        routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],
+        routes: [{ name: 'MyMeals', params: { screen: 'MyMealsList' } }],
       });
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not update meal');
-      console.error('[EditMealScreen] onSave error:', e);
     }
-    setLoading(false);
-  };
+  } catch (e: any) {
+    Alert.alert('Error', e.message || 'Could not update meal');
+    console.error('[EditMealScreen] onSave error:', e);
+  }
 
-  const onDelete = async () => {
-    Alert.alert('Delete?', 'Are you sure you want to delete this meal?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            const resp = await fetch(`${API_BASE_URL}/dishes/${meal.id}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!resp.ok) throw new Error('Failed to delete meal');
-            await refreshUser?.();
+  setLoading(false);
+};
 
-            // After deletion, also reset into Feeder → MyMeals
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],
-            });
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-            console.error('[EditMealScreen] onDelete error:', e);
+const onDelete = async () => {
+  Alert.alert('Delete?', 'Are you sure you want to delete this meal?', [
+    { text: 'Cancel', style: 'cancel' },
+    {
+      text: 'Delete',
+      style: 'destructive',
+      onPress: async () => {
+        setLoading(true);
+        try {
+          console.log('[EditMealScreen] Sending DELETE to /dishes/', meal.id);
+          const resp = await fetch(`${API_BASE_URL}/dishes/${meal.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!resp.ok) {
+            const errorText = await resp.text();
+            throw new Error(`Failed to delete: ${errorText}`);
           }
-          setLoading(false);
-        },
+          console.log('[EditMealScreen] Successful DELETE response');
+          await refreshUser();
+          Alert.alert('Success', 'Meal deleted successfully!');
+
+          // Navigate to MyMeals tab and MyMealsList screen
+          const tabNav = navigation.getParent();
+          console.log('[EditMealScreen] Before navigation (delete). Tab state:', JSON.stringify(tabNav?.getState(), null, 2));
+          if (!tabNav) {
+            console.error('[EditMealScreen] Could not find Tab navigator');
+            navigation.navigate('MyMealsList');
+          } else {
+            console.log('[EditMealScreen] Resetting to MyMeals tab, MyMealsList screen after delete');
+            tabNav.reset({
+              index: 0,
+              routes: [{ name: 'MyMeals', params: { screen: 'MyMealsList' } }],
+            });
+          }
+        } catch (e: any) {
+          Alert.alert('Error', e.message);
+          console.error('[EditMealScreen] onDelete error:', e);
+        }
+        setLoading(false);
       },
-    ]);
-  };
+    },
+  ]);
+};
+
+// Add navigation listener for debugging
+useEffect(() => {
+  const unsubscribe = navigation.getParent()?.addListener('state', () => {
+    console.log('[EditMealScreen] Tab navigator state changed:', JSON.stringify(navigation.getParent()?.getState(), null, 2));
+  });
+  return unsubscribe;
+}, [navigation]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

@@ -42,10 +42,44 @@ export default function RolePickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 26, fontWeight: 'bold', color: Colors.primary, marginBottom: 28, textAlign: 'center' },
-  boxEater: { backgroundColor: Colors.secondary, borderRadius: 14, padding: 32, marginBottom: 16, width: '90%', alignItems: 'center' },
-  boxFeeder: { backgroundColor: Colors.accent, borderRadius: 14, padding: 32, width: '90%', alignItems: 'center' },
-  roleTitle: { fontSize: 22, fontWeight: 'bold', color: Colors.primary, marginBottom: 6 },
-  roleDesc: { fontSize: 16, color: Colors.textMuted, textAlign: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 28,
+    textAlign: 'center',
+  },
+  boxEater: {
+    backgroundColor: Colors.secondary,
+    borderRadius: 14,
+    padding: 32,
+    marginBottom: 16,
+    width: '90%',
+    alignItems: 'center',
+  },
+  boxFeeder: {
+    backgroundColor: Colors.accent,
+    borderRadius: 14,
+    padding: 32,
+    width: '90%',
+    alignItems: 'center',
+  },
+  roleTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 6,
+  },
+  roleDesc: {
+    fontSize: 16,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
 });

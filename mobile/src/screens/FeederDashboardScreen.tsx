@@ -42,11 +42,11 @@ export default function FeederDashboardScreen() {
   }, [user]);
 
   function handleAddMeal() {
-    navigation.navigate('AddMeal');
+    navigation.getParent()?.navigate('MyMeals', { screen: 'AddMeal' });
   }
 
   function handleEditMeal(dish: Dish) {
-    navigation.navigate('EditMeal', { dish });
+    navigation.getParent()?.navigate('MyMeals', { screen: 'EditMeal', params: { meal: dish } });
   }
 
   return (
@@ -62,7 +62,7 @@ export default function FeederDashboardScreen() {
       ) : (
         <FlatList
           data={dishes}
-          keyExtractor={d => d.id.toString()}
+          keyExtractor={(d) => d.id.toString()}
           contentContainerStyle={{ paddingBottom: 30 }}
           renderItem={({ item }) => (
             <TouchableOpacity

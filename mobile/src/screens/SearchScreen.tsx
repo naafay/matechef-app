@@ -1,4 +1,5 @@
 // mobile/src/screens/SearchScreen.tsx
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -17,8 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../context/CartContext';
 import { getChefs, Chef } from '../api/chefs';
 import { getDishes, Dish } from '../api/dishes';
-import { RootStackParamList } from '../../App';
 import { Colors } from '../theme';
+
+type RootStackParamList = {
+  Profile: { chefId: number };
+  DishDetail: { dish: Dish };
+  Cart: undefined;
+};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,24 +33,24 @@ const CARD_WIDTH = width * 0.6;
 
 // First layer
 const L1: FilterOption[] = [
-  { key: 'top',      label: 'Top Mates' },
+  { key: 'top', label: 'Top Mates' },
   { key: 'verified', label: 'Verified Mates' },
-  { key: 'kind',     label: 'Kind Bites' },
-  { key: 'ready',    label: 'Ready-to-go' },
+  { key: 'kind', label: 'Kind Bites' },
+  { key: 'ready', label: 'Ready-to-go' },
 ];
 // Second layer
 const L2: FilterOption[] = [
-  { key: 'all',         label: 'All' },
-  { key: 'vegetarian',  label: 'Vegetarian' },
-  { key: 'organic',     label: 'Organic' },
-  { key: 'glutenfree',  label: 'Gluten-Free' },
-  { key: 'chicken',     label: 'Chicken' },
-  { key: 'beef',        label: 'Beef' },
-  { key: 'fish',        label: 'Fish' },
+  { key: 'all', label: 'All' },
+  { key: 'vegetarian', label: 'Vegetarian' },
+  { key: 'organic', label: 'Organic' },
+  { key: 'glutenfree', label: 'Gluten-Free' },
+  { key: 'chicken', label: 'Chicken' },
+  { key: 'beef', label: 'Beef' },
+  { key: 'fish', label: 'Fish' },
 ];
 // Third layer
 const L3: FilterOption[] = [
-  { key: '5',  label: '< 5 Km' },
+  { key: '5', label: '< 5 Km' },
   { key: '10', label: '< 10 Km' },
   { key: '50', label: '< 50 Km' },
 ];
@@ -56,15 +62,18 @@ const LOCS: Record<number, { latitude: number; longitude: number }> = {
   2: { latitude: -37.8044, longitude: 144.9632 },
 };
 
-function distanceKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+function distanceKm(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number }
+) {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const R = 6371;
   const dLat = toRad(b.latitude - a.latitude);
   const dLon = toRad(b.longitude - a.longitude);
   const lat1 = toRad(a.latitude);
   const lat2 = toRad(b.latitude);
-  const x = Math.sin(dLat/2)**2 + Math.sin(dLon/2)**2 * Math.cos(lat1)*Math.cos(lat2);
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
 export default function SearchScreen() {
@@ -91,11 +100,13 @@ export default function SearchScreen() {
         setLoading(false);
       }
     })();
-    return () => { m = false; };
+    return () => {
+      m = false;
+    };
   }, [l2]);
 
   const applyL1 = (chef: Chef) => {
-    if (l1 === 'ready') return dishes.some(d => d.chef_id === chef.id);
+    if (l1 === 'ready') return dishes.some((d) => d.chef_id === chef.id);
     return true;
   };
   const maxD = Number(l3);
@@ -107,12 +118,12 @@ export default function SearchScreen() {
 
   const sections = useMemo(() => {
     return chefs
-      .filter(c => applyL1(c) && applyL3(c))
-      .map(c => ({
+      .filter((c) => applyL1(c) && applyL3(c))
+      .map((c) => ({
         chef: c,
-        dishes: dishes.filter(d => d.chef_id === c.id),
+        dishes: dishes.filter((d) => d.chef_id === c.id),
       }))
-      .filter(sec => sec.dishes.length > 0);
+      .filter((sec) => sec.dishes.length > 0);
   }, [chefs, dishes, l1, l3]);
 
   if (loading) {
@@ -130,7 +141,7 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={sections}
-          keyExtractor={sec => sec.chef.id.toString()}
+          keyExtractor={(sec) => sec.chef.id.toString()}
           renderItem={({ item: sec }) => (
             <View style={styles.section}>
               <TouchableOpacity
@@ -141,7 +152,7 @@ export default function SearchScreen() {
               <FlatList
                 horizontal
                 data={sec.dishes}
-                keyExtractor={d => d.id.toString()}
+                keyExtractor={(d) => d.id.toString()}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.hList}
                 renderItem={({ item: d }) => (
@@ -193,10 +204,10 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: Colors.background },
-  empty:       { textAlign: 'center', marginTop: 20, color: Colors.textMuted },
-  section:     { marginVertical: 12 },
-  chefName:    {
+  container: { flex: 1, backgroundColor: Colors.background },
+  empty: { textAlign: 'center', marginTop: 20, color: Colors.textMuted },
+  section: { marginVertical: 12 },
+  chefName: {
     fontSize: 20,
     fontWeight: '600',
     marginHorizontal: 16,
@@ -204,26 +215,26 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     textDecorationLine: 'underline',
   },
-  hList:       { paddingLeft: 8 },
-  card:        {
+  hList: { paddingLeft: 8 },
+  card: {
     width: CARD_WIDTH,
     marginHorizontal: 8,
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#fff',
   },
-  img:         { width: CARD_WIDTH - 24, height: 100, borderRadius: 4 },
-  dName:       { fontSize: 16, fontWeight: 'bold', marginTop: 8, color: Colors.text },
-  dPrice:      { fontSize: 14, marginVertical: 4, color: Colors.textMuted },
-  addBtn:      {
+  img: { width: CARD_WIDTH - 24, height: 100, borderRadius: 4 },
+  dName: { fontSize: 16, fontWeight: 'bold', marginTop: 8, color: Colors.text },
+  dPrice: { fontSize: 14, marginVertical: 4, color: Colors.textMuted },
+  addBtn: {
     backgroundColor: Colors.primary,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
-  addTxt:      { color: '#fff', fontSize: 14 },
-  cartBtn:     {
+  addTxt: { color: '#fff', fontSize: 14 },
+  cartBtn: {
     position: 'absolute',
     bottom: 24,
     right: 24,
@@ -232,15 +243,16 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     elevation: 5,
   },
-  badge:       {
+  badge: {
     position: 'absolute',
     top: 6,
     right: 6,
     backgroundColor: Colors.danger,
-    width: 20, height: 20,
+    width: 20,
+    height: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText:   { color: '#fff', fontSize: 12 },
+  badgeText: { color: '#fff', fontSize: 12 },
 });

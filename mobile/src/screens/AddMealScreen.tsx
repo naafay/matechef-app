@@ -13,14 +13,23 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 
 const API_BASE_URL = 'http://10.0.2.2:8000';
 
+type MyMealsStackParamList = {
+  MyMealsList: undefined;
+  AddMeal: undefined;
+  EditMeal: { meal: any };
+};
+
+type AddMealNavProp = NativeStackNavigationProp<MyMealsStackParamList, 'AddMeal'>;
+
 export default function AddMealScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AddMealNavProp>();
   const { token, user, refreshUser } = useContext(AuthContext);
 
   const [name, setName] = useState('');
@@ -57,60 +66,61 @@ export default function AddMealScreen() {
     }
   };
 
-const onSave = async () => {
-  if (!name || !description || (!isKind && !price)) {
-    Alert.alert('Error', 'Name, description, and price are required.');
-    return;
-  }
-  setLoading(true);
-  console.log('[AddMealScreen] Sending request to add meal');
-  try {
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    formData.append('price', isKind ? '0' : price);
-    formData.append('chef_id', user?.chef_id?.toString() || '');
-    formData.append('is_kind', isKind ? 'true' : 'false');
-    formData.append('prep_time', prepTime);
-    formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
-    formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
-    
-    if (image) {
-      formData.append('image', {
-        uri: image,
-        name: 'meal.jpg',
-        type: 'image/jpeg',
-      } as any);
+  const onSave = async () => {
+    if (!name || !description || (!isKind && !price)) {
+      Alert.alert('Error', 'Name, description, and price are required.');
+      return;
     }
-
-    const res = await fetch('http://10.0.2.2:8000/users/me/dishes', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('[AddMealScreen] Server response:', errorText);
-      throw new Error(`Failed to add meal: ${errorText}`);
+    if (!token) {
+      Alert.alert('Error', 'You must be logged in to add a meal.');
+      return;
     }
+    setLoading(true);
+    console.log('[AddMealScreen] Sending request to add meal');
+    try {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      formData.append('price', isKind ? '0' : price);
+      formData.append('chef_id', user?.chef_id?.toString() || '');
+      formData.append('is_kind', isKind ? 'true' : 'false');
+      formData.append('prep_time', prepTime);
+      formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
+      formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
 
-    console.log('[AddMealScreen] Received successful response');
-    await refreshUser?.();
+      if (image) {
+        formData.append('image', {
+          uri: image,
+          name: 'meal.jpg',
+          type: 'image/jpeg',
+        } as any);
+      }
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Feeder', params: { screen: 'MyMeals' } }],
-    });
-  } catch (e: any) {
-    console.error('[AddMealScreen] Error adding meal:', e);
-    Alert.alert('Error', e.message || 'Could not add meal');
-  }
-  setLoading(false);
-};
+      const res = await fetch(`${API_BASE_URL}/users/me/dishes`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[AddMealScreen] Server response:', errorText);
+        throw new Error(`Failed to add meal: ${errorText}`);
+      }
+
+      console.log('[AddMealScreen] Received successful response');
+      await refreshUser();
+
+      // Pop back to MyMealsList inside the inner MyMeals stack:
+      navigation.navigate('MyMealsList');
+    } catch (e: any) {
+      console.error('[AddMealScreen] Error adding meal:', e);
+      Alert.alert('Error', e.message || 'Could not add meal');
+    }
+    setLoading(false);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -188,7 +198,13 @@ const onSave = async () => {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: Colors.background },
-  title: { fontSize: 26, fontWeight: 'bold', color: Colors.primary, marginBottom: 24, textAlign: 'center' },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
   image: { width: 180, height: 120, alignSelf: 'center', borderRadius: 12, marginBottom: 12 },
   imgPlaceholder: {
     width: 180,
@@ -226,6 +242,12 @@ const styles = StyleSheet.create({
     backgroundColor: checked ? Colors.primary : '#fff',
     marginRight: 5,
   }),
-  button: { marginTop: 24, backgroundColor: Colors.primary, padding: 14, borderRadius: 8, alignItems: 'center' },
+  button: {
+    marginTop: 24,
+    backgroundColor: Colors.primary,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
 });

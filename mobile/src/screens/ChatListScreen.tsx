@@ -1,4 +1,5 @@
 // mobile/src/screens/ChatListScreen.tsx
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../theme';

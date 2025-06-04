@@ -17,35 +17,45 @@ export default function FeederOnboardingScreen() {
       Alert.alert('Required', 'Please enter your address.');
       return;
     }
+    if (!token) {
+      Alert.alert('Error', 'You must be logged in to save.');
+      return;
+    }
+
     setSaving(true);
     try {
+      // Build headers using token from context
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
       // Save address
-      let res = await fetch('http://10.0.2.2:8000/users/me/address', {
+      const res = await fetch('http://10.0.2.2:8000/users/me/address', {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ address }),
       });
-      if (!res.ok) throw new Error('Failed to save address.');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to save address: ${errorText}`);
+      }
 
-      // Save ID verification (optional for now)
+      // Save ID verification (optional)
       if (idVerification) {
-        res = await fetch('http://10.0.2.2:8000/users/me/id-verification', {
+        const res2 = await fetch('http://10.0.2.2:8000/users/me/id-verification', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ id_verification: idVerification }),
         });
-        if (!res.ok) throw new Error('Failed to save ID verification.');
+        if (!res2.ok) {
+          const errorText = await res2.text();
+          throw new Error(`Failed to save ID verification: ${errorText}`);
+        }
       }
 
       await refreshUser();
-      // DO NOT NAVIGATE! The root navigator will auto-switch.
-      // The user will be taken to the main app (tabs) when address is set.
+      // After this, MyMealsScreen will detect address and show list
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to save info');
     }
@@ -54,7 +64,7 @@ export default function FeederOnboardingScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Feeder Setup</Text>
+      <Text style={styles.title}>Chef Profile Setup</Text>
       <Text style={styles.label}>Pickup Address *</Text>
       <TextInput
         style={styles.input}
@@ -79,10 +89,40 @@ export default function FeederOnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', padding: 24 },
-  title: { fontSize: 26, fontWeight: 'bold', color: Colors.primary, marginBottom: 28, textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '500', marginTop: 16, color: Colors.primary },
-  input: { borderWidth: 1, borderColor: Colors.primary, borderRadius: 6, padding: 12, marginTop: 8, backgroundColor: '#fff', color: Colors.text },
-  button: { marginTop: 32, backgroundColor: Colors.primary, padding: 16, borderRadius: 8, alignItems: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 28,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+    color: Colors.primary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 8,
+    backgroundColor: '#fff',
+    color: Colors.text,
+  },
+  button: {
+    marginTop: 32,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
 });

@@ -1,4 +1,5 @@
 // mobile/src/screens/SignupScreen.tsx
+
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -16,7 +17,7 @@ import { RootStackParamList } from '../../App';
 import { Colors } from '../theme';
 import { API_BASE_URL } from '../api/config';
 
-type SignupNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+type SignupNavProp = NativeStackNavigationProp<RootStackParamList, 'AuthStack'>;
 
 export default function SignupScreen() {
   const { login } = useContext(AuthContext);

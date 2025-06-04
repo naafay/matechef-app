@@ -1,5 +1,3 @@
-# backend/app/main.py
-
 import os
 import shutil
 import uuid
@@ -73,7 +71,7 @@ def signup(user_in: UserCreate):
             hashed_password=get_password_hash(user_in.password),
             is_eater=True,
             is_feeder=False,
-            active_role=None,  # User must pick at login
+            active_role=None,  # User must fill Chef profile
         )
         session.add(user)
         session.commit()
@@ -149,24 +147,7 @@ def read_users_me(current: User = Depends(get_current_user)):
             chef_id=user_db.chef_id,
         )
 
-@app.patch("/users/me/role", summary="Switch between eater/feeder mode")
-def switch_role(
-    data: dict = Body(...),
-    current: User = Depends(get_current_user)
-):
-    role = data.get("role")
-    if role not in ("eater", "feeder"):
-        raise HTTPException(status_code=400, detail="Role must be 'eater' or 'feeder'")
-    with Session(engine) as session:
-        user_db = session.get(User, current.id)
-        if not user_db:
-            raise HTTPException(status_code=404, detail="User not found")
-        user_db.active_role = role
-        session.add(user_db)
-        session.commit()
-        return {"active_role": user_db.active_role}
-
-@app.patch("/users/me/address", summary="Set or update feeder pickup address")
+@app.patch("/users/me/address", summary="Set or update chef pickup address")
 def update_address(
     data: dict = Body(...),
     current: User = Depends(get_current_user)
@@ -181,7 +162,7 @@ def update_address(
         session.commit()
         return {"address": user_db.address}
 
-@app.post("/users/me/id-verification", summary="Upload feeder ID (future-proof)")
+@app.post("/users/me/id-verification", summary="Upload chef ID (future-proof)")
 def update_id_verification(
     data: dict = Body(...),
     current: User = Depends(get_current_user)
@@ -196,7 +177,7 @@ def update_id_verification(
         session.commit()
         return {"id_verification": user_db.id_verification}
 
-@app.post("/users/me/dishes", response_model=DishRead, summary="Feeder creates new dish")
+@app.post("/users/me/dishes", response_model=DishRead, summary="Chef creates new dish")
 async def create_dish(
     name: str = Form(...),
     description: str = Form(...),
@@ -209,6 +190,10 @@ async def create_dish(
     image: Optional[UploadFile] = File(None),
     current: User = Depends(get_current_user)
 ):
+    # Require that the user has completed their Chef profile (address) first
+    if not current.address:
+        raise HTTPException(status_code=400, detail="You must complete your Chef profile before adding dishes.")
+
     # Handle image upload with unique hash name
     image_url = None
     if image:
@@ -262,13 +247,20 @@ async def update_dish(
         if chef_id and dish.chef_id != chef_id:
             raise HTTPException(status_code=400, detail="Not your dish")
 
-        if name is not None: dish.name = name
-        if description is not None: dish.description = description
-        if price is not None: dish.price = price
-        if is_kind is not None: dish.is_kind = is_kind
-        if prep_time is not None: dish.prep_time = prep_time
-        if pickup_available is not None: dish.pickup_available = pickup_available
-        if delivery_available is not None: dish.delivery_available = delivery_available
+        if name is not None:
+            dish.name = name
+        if description is not None:
+            dish.description = description
+        if price is not None:
+            dish.price = price
+        if is_kind is not None:
+            dish.is_kind = is_kind
+        if prep_time is not None:
+            dish.prep_time = prep_time
+        if pickup_available is not None:
+            dish.pickup_available = pickup_available
+        if delivery_available is not None:
+            dish.delivery_available = delivery_available
 
         # Handle image upload/update
         if image:
@@ -293,7 +285,7 @@ def delete_dish(
         dish = session.get(Dish, dish_id)
         if not dish:
             raise HTTPException(status_code=404, detail="Dish not found")
-        # Optional: Only the chef who owns this dish can delete
+        # Only the chef who owns this dish can delete
         chef = session.get(Chef, dish.chef_id)
         if chef.user_id != current.id:
             raise HTTPException(status_code=403, detail="Not authorized")

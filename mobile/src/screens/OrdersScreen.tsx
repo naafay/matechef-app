@@ -1,5 +1,4 @@
-// OrdersScreen.tsx
-// Shows past & current orders
+// mobile/src/screens/OrdersScreen.tsx
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -30,4 +29,3 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 });
-

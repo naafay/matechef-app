@@ -19,20 +19,23 @@ export default function AccountScreen() {
   useEffect(() => {
     // Log the navigation state when AccountScreen mounts
     const state: NavigationState | undefined = navigation.getState();
-    console.log('[AccountScreen] Mounted. Navigation state:', JSON.stringify(state, null, 2));
+    console.log(
+      '[AccountScreen] Mounted. Navigation state:',
+      JSON.stringify(state, null, 2)
+    );
   }, [navigation]);
 
-  /**
-   * Navigate to the feeder‐only MyMeals stack inside FeederTab:
-   *   MainApp → FeederTab → MyMeals
-   */
   function goToMyMeals() {
     console.log('[AccountScreen] goToMyMeals called');
     try {
-      navigation.navigate('Feeder', { screen: 'MyMeals' });
-      console.log('[AccountScreen] Called navigation.navigate("FeederTab", { screen: "MyMeals" })');
+      // Switch to the MyMeals tab (inside MainTabs)
+      navigation.getParent()?.navigate('MyMeals');
+      console.log('[AccountScreen] Called parent.navigate("MyMeals")');
     } catch (err: any) {
-      console.error('[AccountScreen] Navigation error to FeederTab → MyMeals:', err);
+      console.error(
+        '[AccountScreen] Navigation error to MyMeals tab:',
+        err
+      );
       Alert.alert('Navigation Error', err.message || 'Could not open My Meals');
     }
   }

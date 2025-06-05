@@ -1,6 +1,6 @@
 // mobile/src/screens/MapScreen.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { getChefs, Chef, getChefDishes } from '../api/chefs';
 import { Dish } from '../api/dishes';
 import mapStyle from '../theme/mapStyle.json';
 import { Colors } from '../theme';
+import { AuthContext } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -48,6 +49,7 @@ const GREEN_PIN = require('../../assets/marker-green.png');
 
 export default function MapScreen() {
   const navigation = useNavigation<any>();
+  const { user } = useContext(AuthContext);
 
   const [firstFilter, setFirstFilter] = useState<string>('top');
   const [chefs, setChefs] = useState<Chef[]>([]);
@@ -123,24 +125,52 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ─── NEW: Top Welcome Card ─────────────────────────────────────────── */}
+      <View style={styles.topCard}>
+        <Text style={styles.cardGreeting}>
+          {user ? `G’day, ${user.first_name}!` : 'G’day, Mate!'}
+        </Text>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Favorites')}
+          >
+            <Text style={styles.actionButtonText}>Fave Mates’ Menu</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.getParent()?.navigate('MyMeals')}
+          >
+            <Text style={styles.actionButtonText}>Cook for Mates</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* ─── “Plates Nearby” Heading shifted here ──────────────────────────── */}
       <Text style={styles.title}>Plates Nearby</Text>
 
-      <FilterMenu
-        options={FIRST_LAYER}
-        selectedKey={firstFilter}
-        onSelect={setFirstFilter}
-      />
+      {/* ─── Filter Menu (spaced below title for breathing room) ─────────── */}
+      <View style={styles.filterWrapper}>
+        <FilterMenu
+          options={FIRST_LAYER}
+          selectedKey={firstFilter}
+          onSelect={setFirstFilter}
+        />
+      </View>
 
       {error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <>
+          {/* ─── The Map ──────────────────────────────────────────────────────── */}
           <MapView
             style={styles.map}
             initialRegion={INITIAL_REGION}
             customMapStyle={mapStyle}
             onRegionChangeComplete={setRegion}
-            onPress={() => setSelectedChefId(null)} // Hides panel on map press
+            onPress={() => setSelectedChefId(null)}
           >
             {visibleChefs.map((chef) => {
               const loc = LOCATIONS[chef.id]!;
@@ -154,7 +184,7 @@ export default function MapScreen() {
                     markerRefs.current[chef.id] = ref;
                   }}
                   onPress={(e) => {
-                    e.stopPropagation(); // Prevents map onPress firing too
+                    e.stopPropagation();
                     setSelectedChefId(chef.id);
                   }}
                   calloutAnchor={{ x: 0.5, y: 2 }}
@@ -163,10 +193,11 @@ export default function MapScreen() {
             })}
           </MapView>
 
+          {/* ─── Floating Chef-Dish Card ──────────────────────────────────── */}
           {selectedChefId && (
-            <View style={styles.bottomPanel}>
-              <View style={styles.panelHeader}>
-                <Text style={styles.panelChefName}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardChefName}>
                   {chefs.find((c) => c.id === selectedChefId)?.name || 'Chef'}
                 </Text>
                 <TouchableOpacity
@@ -174,25 +205,30 @@ export default function MapScreen() {
                     navigation.navigate('Profile', { chefId: selectedChefId })
                   }
                 >
-                  <Text style={styles.panelViewProfile}>View Profile</Text>
+                  <Text style={styles.cardViewProfile}>View Profile</Text>
                 </TouchableOpacity>
               </View>
+
               <FlatList
                 data={selectedDishes}
                 keyExtractor={(item) => item.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingVertical: 6 }}
+                contentContainerStyle={styles.cardDishList}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.dishItem}
+                    style={styles.cardDishItem}
                     onPress={() => navigation.navigate('DishDetail', { dish: item })}
                   >
-                    <Text style={styles.dishName}>{item.name}</Text>
-                    <Text style={styles.dishPrice}>${item.price.toFixed(2)}</Text>
+                    <Text style={styles.cardDishName}>{item.name}</Text>
+                    <Text style={styles.cardDishPrice}>
+                      ${item.price.toFixed(2)}
+                    </Text>
                   </TouchableOpacity>
                 )}
-                ListEmptyComponent={<Text style={styles.noDishes}>No dishes available</Text>}
+                ListEmptyComponent={
+                  <Text style={styles.cardNoDishes}>No dishes available</Text>
+                }
               />
             </View>
           )}
@@ -207,78 +243,133 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: Platform.OS === 'ios' ? 60 : 40,
-    marginBottom: 8,
-    color: Colors.primary,
-  },
+
+  // ─── Loader / Error ───────────────────────────────────────────────────
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  map: {
-    flex: 1,
   },
   errorText: {
     textAlign: 'center',
     marginTop: 20,
     color: Colors.danger,
   },
-  bottomPanel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingVertical: 16,
+
+  // ─── NEW: Top Welcome Card ────────────────────────────────────────────
+  topCard: {
+    backgroundColor: Colors.primary,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    paddingVertical: 18,
     paddingHorizontal: 20,
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
+    // subtle shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 5,
   },
-  panelHeader: {
+  cardGreeting: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 14,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: Colors.secondary,
+    borderRadius: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginHorizontal: 6,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: Colors.primary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // ─── “Plates Nearby” ─────────────────────────────────────────────────
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 24,       // extra space between card and heading
+    marginBottom: 8,     // small gap before filters
+    color: Colors.primary,
+  },
+
+  // ─── Filter Menu Wrapper (adds a bit of padding) ─────────────────────
+  filterWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+
+  // ─── The Map ────────────────────────────────────────────────────────
+  map: {
+    flex: 1,
+  },
+
+  // ─── Floating Chef-Dish Card ─────────────────────────────────────────
+  cardContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    // subtle shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  panelChefName: {
+  cardChefName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: Colors.primary,
   },
-  panelViewProfile: {
+  cardViewProfile: {
     fontSize: 14,
     color: Colors.primary,
     textDecorationLine: 'underline',
   },
-  dishItem: {
+  cardDishList: {
+    paddingVertical: 8,
+  },
+  cardDishItem: {
     backgroundColor: '#f5f5f5',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 12,
     marginRight: 12,
+    minWidth: 100,
     alignItems: 'center',
-    minWidth: 80,
   },
-  dishName: {
+  cardDishName: {
     fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 4,
   },
-  dishPrice: {
+  cardDishPrice: {
     fontSize: 13,
     color: Colors.primary,
   },
-  noDishes: {
+  cardNoDishes: {
     fontSize: 14,
     color: Colors.textMuted,
     marginLeft: 8,

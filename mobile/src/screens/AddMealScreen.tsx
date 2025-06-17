@@ -15,10 +15,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { AuthContext } from '../context/AuthContext';
 import { Colors } from '../theme';
 
 const API_BASE_URL = 'http://10.0.2.2:8000';
+const GOOGLE_API_KEY = 'AIzaSyC_4Hb72TJeW-UF0hrnYwub6XQMNRKDKI0';
 
 type MyMealsStackParamList = {
   MyMealsList: undefined;
@@ -40,6 +42,7 @@ export default function AddMealScreen() {
   const [prepTime, setPrepTime] = useState('');
   const [pickupAvailable, setPickupAvailable] = useState(true);
   const [deliveryAvailable, setDeliveryAvailable] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const pickImage = async (fromCamera = false) => {
@@ -71,6 +74,10 @@ export default function AddMealScreen() {
       Alert.alert('Error', 'Name, description, and price are required.');
       return;
     }
+    if (!pickupLocation) {
+      Alert.alert('Error', 'Pickup location is required.');
+      return;
+    }
     if (!token) {
       Alert.alert('Error', 'You must be logged in to add a meal.');
       return;
@@ -87,6 +94,7 @@ export default function AddMealScreen() {
       formData.append('prep_time', prepTime);
       formData.append('pickup_available', pickupAvailable ? 'true' : 'false');
       formData.append('delivery_available', deliveryAvailable ? 'true' : 'false');
+      formData.append('pickup_location', pickupLocation);
 
       if (image) {
         formData.append('image', {
@@ -125,6 +133,7 @@ export default function AddMealScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add Meal</Text>
+
       <TouchableOpacity onPress={() => pickImage(false)}>
         {image ? (
           <Image source={{ uri: image }} style={styles.image} />
@@ -139,6 +148,7 @@ export default function AddMealScreen() {
           <Text style={styles.camTxt}>Take Photo</Text>
         </TouchableOpacity>
       </View>
+
       <TextInput
         style={styles.input}
         placeholder="Meal Name"
@@ -159,12 +169,14 @@ export default function AddMealScreen() {
         onChangeText={setPrice}
         editable={!isKind}
       />
+
       <View style={styles.row}>
         <Text style={styles.label}>Kind Meal (Free)?</Text>
         <TouchableOpacity onPress={() => setIsKind(!isKind)} style={styles.checkBox(isKind)}>
           <Text style={styles.label}>{isKind ? '✓' : ''}</Text>
         </TouchableOpacity>
       </View>
+
       <TextInput
         style={styles.input}
         placeholder="Prep Time (minutes)"
@@ -172,6 +184,7 @@ export default function AddMealScreen() {
         value={prepTime}
         onChangeText={setPrepTime}
       />
+
       <View style={styles.row}>
         <Text style={styles.label}>Pickup Available?</Text>
         <TouchableOpacity
@@ -188,6 +201,34 @@ export default function AddMealScreen() {
           <Text style={styles.label}>{deliveryAvailable ? '✓' : ''}</Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={[styles.label, { marginTop: 12 }]}>Pickup Location</Text>
+      <GooglePlacesAutocomplete
+        placeholder="Search suburb or address"
+        onPress={(_, details = null) => {
+          if (details?.formatted_address) {
+            setPickupLocation(details.formatted_address);
+          }
+        }}
+        fetchDetails={true}
+        query={{
+          key: GOOGLE_API_KEY,
+          language: 'en',
+          components: 'country:au',
+        }}
+        styles={{
+          textInputContainer: styles.placesInputContainer,
+          textInput: styles.placesTextInput,
+          listView: styles.placesListView,
+        }}
+        enablePoweredByContainer={false}
+        nearbyPlacesAPI="GooglePlacesSearch"
+        debounce={300}
+      />
+      {pickupLocation ? (
+        <Text style={styles.chosenLocationText}>{pickupLocation}</Text>
+      ) : null}
+
       <TouchableOpacity style={styles.button} onPress={onSave} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save Meal'}</Text>
       </TouchableOpacity>
@@ -197,7 +238,10 @@ export default function AddMealScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: Colors.background },
+  container: {
+    padding: 20,
+    backgroundColor: Colors.background,
+  },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
@@ -205,7 +249,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
   },
-  image: { width: 180, height: 120, alignSelf: 'center', borderRadius: 12, marginBottom: 12 },
+  image: {
+    width: 180,
+    height: 120,
+    alignSelf: 'center',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
   imgPlaceholder: {
     width: 180,
     height: 120,
@@ -216,10 +266,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imgText: { color: Colors.textMuted },
-  btnRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
-  camBtn: { backgroundColor: Colors.primary, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  camTxt: { color: '#fff' },
+  imgText: {
+    color: Colors.textMuted,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  camBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  camTxt: {
+    color: '#fff',
+  },
   input: {
     borderWidth: 1,
     borderColor: Colors.primary,
@@ -229,8 +292,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: Colors.text,
   },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  label: { fontSize: 16, color: Colors.primary, marginRight: 8 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 16,
+    color: Colors.primary,
+    marginRight: 8,
+  },
   checkBox: (checked: boolean) => ({
     width: 22,
     height: 22,
@@ -242,6 +313,33 @@ const styles = StyleSheet.create({
     backgroundColor: checked ? Colors.primary : '#fff',
     marginRight: 5,
   }),
+  placesInputContainer: {
+    marginHorizontal: 0,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  placesTextInput: {
+    height: 40,
+    paddingHorizontal: 12,
+    color: Colors.text,
+    fontSize: 16,
+  },
+  placesListView: {
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 6,
+    marginHorizontal: 0,
+  },
+  chosenLocationText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: 16,
+    marginLeft: 4,
+  },
   button: {
     marginTop: 24,
     backgroundColor: Colors.primary,
@@ -249,5 +347,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
 });

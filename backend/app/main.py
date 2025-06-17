@@ -1,3 +1,5 @@
+# backend/app/main.py
+
 import os
 import shutil
 import uuid
@@ -51,8 +53,20 @@ def on_startup():
         # Seed dishes if none
         if not session.exec(select(Dish)).first():
             session.add_all([
-                Dish(name="Mediterranean Salad", description="Fresh greens", price=12.99, chef_id=1),
-                Dish(name="Grilled Chicken", description="Juicy & spicy", price=15.49, chef_id=2),
+                Dish(
+                    name="Mediterranean Salad",
+                    description="Fresh greens",
+                    price=12.99,
+                    chef_id=1,
+                    pickup_location=None
+                ),
+                Dish(
+                    name="Grilled Chicken",
+                    description="Juicy & spicy",
+                    price=15.49,
+                    chef_id=2,
+                    pickup_location=None
+                ),
             ])
             session.commit()
 
@@ -187,6 +201,7 @@ async def create_dish(
     prep_time: Optional[int] = Form(None),
     pickup_available: bool = Form(True),
     delivery_available: bool = Form(False),
+    pickup_location: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
     current: User = Depends(get_current_user)
 ):
@@ -219,6 +234,7 @@ async def create_dish(
             prep_time=prep_time,
             pickup_available=pickup_available,
             delivery_available=delivery_available,
+            pickup_location=pickup_location,
             image=image_url,
         )
         session.add(new_dish)
@@ -237,6 +253,7 @@ async def update_dish(
     prep_time: Optional[int] = Form(None),
     pickup_available: Optional[bool] = Form(None),
     delivery_available: Optional[bool] = Form(None),
+    pickup_location: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
     current: User = Depends(get_current_user)
 ):
@@ -261,6 +278,8 @@ async def update_dish(
             dish.pickup_available = pickup_available
         if delivery_available is not None:
             dish.delivery_available = delivery_available
+        if pickup_location is not None:
+            dish.pickup_location = pickup_location
 
         # Handle image upload/update
         if image:

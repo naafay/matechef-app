@@ -56,5 +56,6 @@ class Dish(SQLModel, table=True):
     prep_time: Optional[int] = None
     pickup_available: bool = Field(default=True)
     delivery_available: bool = Field(default=False)
+    pickup_location: Optional[str] = Field(default=None)
 
     chef: Optional[Chef] = Relationship(back_populates="dishes")

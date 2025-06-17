@@ -49,6 +49,7 @@ class DishCreate(SQLModel):
     prep_time: Optional[int] = None
     pickup_available: Optional[bool] = True
     delivery_available: Optional[bool] = False
+    pickup_location: Optional[str] = None
 
 class DishRead(SQLModel):
     id: int
@@ -61,5 +62,7 @@ class DishRead(SQLModel):
     prep_time: Optional[int] = None
     pickup_available: Optional[bool] = True
     delivery_available: Optional[bool] = False
+    pickup_location: Optional[str] = None
+
     class Config:
         from_attributes = True

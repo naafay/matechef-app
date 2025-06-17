@@ -29,6 +29,7 @@ import { AuthContext } from '../context/AuthContext';
 import { getChefs, Chef } from '../api/chefs';
 import { getDishes, Dish } from '../api/dishes';
 import { Colors } from '../theme';
+import { API_BASE_URL } from '../api/config';
 
 type RootStackParamList = {
   Profile: { chefId: number };
@@ -54,23 +55,34 @@ const MEAL_CATEGORIES = [
   'Gluten-Free',
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: prefix any “/static/…” paths with API_BASE_URL
+// ─────────────────────────────────────────────────────────────────────────────
+function getImageUrl(imagePath?: string | null): string {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('/static/')) {
+    return API_BASE_URL + imagePath;
+  }
+  return imagePath;
+}
+
 export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { addItem, items } = useCart();
   const { user } = useContext(AuthContext);
 
-  // ─── MODAL VISIBILITY ────────────────
+  // ─── MODAL VISIBILITY ──────────────────────────────────────────────────────
   const [filterVisible, setFilterVisible] = useState(false);
   const [sortVisible, setSortVisible] = useState(false);
 
-  // ─── FILTER STATE ────────────────
+  // ─── FILTER STATE ──────────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [toBeDone, setToBeDone] = useState<'All' | 'Pickup' | 'Delivery'>('All');
   const [distanceKm, setDistanceKm] = useState(25);
   const [priceMax, setPriceMax] = useState(1000);
   const [hideNoImage, setHideNoImage] = useState(false);
 
-  // ─── SORT STATE ────────────────
+  // ─── SORT STATE ────────────────────────────────────────────────────────────
   const SORT_OPTIONS = [
     'Newest',
     'Price: Low → High',
@@ -79,7 +91,7 @@ export default function SearchScreen() {
   ];
   const [selectedSort, setSelectedSort] = useState('Newest');
 
-  // ─── DATA FETCHING ────────────────
+  // ─── DATA FETCHING ──────────────────────────────────────────────────────────
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,7 +115,7 @@ export default function SearchScreen() {
     };
   }, [selectedCategory]);
 
-  // ─── LOCATION HELPERS ────────────────
+  // ─── LOCATION HELPERS ──────────────────────────────────────────────────────
   const USER_LOC = { latitude: -37.8136, longitude: 144.9631 };
   const LOCS: Record<number, { latitude: number; longitude: number }> = {
     1: { latitude: -37.8136, longitude: 144.9631 },
@@ -125,7 +137,7 @@ export default function SearchScreen() {
     return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
   }
 
-  // ─── FILTER + SORT LOGIC ────────────────
+  // ─── FILTER + SORT LOGIC ────────────────────────────────────────────────────
   const filteredMeals = useMemo(() => {
     // Build an array of { meal, chef } pairs
     const pairs: { meal: Dish; chef: Chef }[] = [];
@@ -245,7 +257,10 @@ export default function SearchScreen() {
               onPress={() => navigation.navigate('DishDetail', { dish: meal })}
             >
               {meal.image ? (
-                <Image source={{ uri: meal.image }} style={styles.cardImage} />
+                <Image
+                  source={{ uri: getImageUrl(meal.image) }}
+                  style={styles.cardImage}
+                />
               ) : (
                 <View style={styles.cardImagePlaceholder}>
                   <Ionicons name="image-outline" size={32} color="#bbb" />
@@ -264,14 +279,8 @@ export default function SearchScreen() {
                     Melbourne VIC, Australia
                   </Text>
                 </View>
+                {/* ─── ONLY show pickup/delivery, not “Kind Meal” here ───────────── */}
                 <View style={styles.pillsRow}>
-                  {meal.is_kind && (
-                    <View
-                      style={[styles.pill, { backgroundColor: '#8BC34A' }]}
-                    >
-                      <Text style={styles.pillText}>Kind Free</Text>
-                    </View>
-                  )}
                   {meal.pickup_available && (
                     <View
                       style={[styles.pill, { backgroundColor: '#FDD835' }]}
@@ -288,7 +297,16 @@ export default function SearchScreen() {
                   )}
                 </View>
               </View>
-              <Text style={styles.priceText}>${meal.price.toFixed(2)}</Text>
+              {/* ─── PRICE OR “Kind Meal” ─────────────────────────────────────────── */}
+              {meal.is_kind ? (
+                <View style={styles.kindPriceWrapper}>
+                  <Text style={styles.kindPriceText}>Kind Meal</Text>
+                </View>
+              ) : (
+                <Text style={styles.priceText}>
+                  ${meal.price.toFixed(2)}
+                </Text>
+              )}
             </TouchableOpacity>
           )}
         />
@@ -449,7 +467,10 @@ export default function SearchScreen() {
               <Text
                 style={[
                   styles.sortOptionText,
-                  selectedSort === opt && { color: Colors.primary, fontWeight: '600' },
+                  selectedSort === opt && {
+                    color: Colors.primary,
+                    fontWeight: '600',
+                  },
                 ]}
               >
                 {opt}
@@ -567,6 +588,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     alignSelf: 'center',
     marginRight: 12,
+  },
+  kindPriceWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  kindPriceText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#388E3C',
   },
 
   // ─── CART BUTTON ─────────────────────────────────────────────────────────────

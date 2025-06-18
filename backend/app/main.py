@@ -58,14 +58,16 @@ def on_startup():
                     description="Fresh greens",
                     price=12.99,
                     chef_id=1,
-                    pickup_location=None
+                    pickup_location="Fitzroy",
+                    pickup_coordinates={"latitude": -37.7987, "longitude": 144.9783}
                 ),
                 Dish(
                     name="Grilled Chicken",
                     description="Juicy & spicy",
                     price=15.49,
                     chef_id=2,
-                    pickup_location=None
+                    pickup_location="Collingwood",
+                    pickup_coordinates={"latitude": -37.8043, "longitude": 144.9934}
                 ),
             ])
             session.commit()
@@ -202,12 +204,24 @@ async def create_dish(
     pickup_available: bool = Form(True),
     delivery_available: bool = Form(False),
     pickup_location: Optional[str] = Form(None),
+    pickup_coordinates: Optional[str] = Form(None),  # JSON string from frontend, stored as TEXT in SQLite
     image: Optional[UploadFile] = File(None),
     current: User = Depends(get_current_user)
 ):
     # Require that the user has completed their Chef profile (address) first
     if not current.address:
         raise HTTPException(status_code=400, detail="You must complete your Chef profile before adding dishes.")
+
+    # Parse pickup_coordinates if provided
+    coordinates = None
+    if pickup_coordinates:
+        try:
+            import json
+            coordinates = json.loads(pickup_coordinates)
+            if not isinstance(coordinates, dict) or 'latitude' not in coordinates or 'longitude' not in coordinates:
+                raise ValueError("Invalid coordinates format")
+        except (json.JSONDecodeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid pickup_coordinates format")
 
     # Handle image upload with unique hash name
     image_url = None
@@ -235,6 +249,7 @@ async def create_dish(
             pickup_available=pickup_available,
             delivery_available=delivery_available,
             pickup_location=pickup_location,
+            pickup_coordinates=coordinates,
             image=image_url,
         )
         session.add(new_dish)
@@ -254,6 +269,7 @@ async def update_dish(
     pickup_available: Optional[bool] = Form(None),
     delivery_available: Optional[bool] = Form(None),
     pickup_location: Optional[str] = Form(None),
+    pickup_coordinates: Optional[str] = Form(None),  # JSON string from frontend, stored as TEXT in SQLite
     image: Optional[UploadFile] = File(None),
     current: User = Depends(get_current_user)
 ):
@@ -263,6 +279,17 @@ async def update_dish(
             raise HTTPException(status_code=404, detail="Dish not found")
         if chef_id and dish.chef_id != chef_id:
             raise HTTPException(status_code=400, detail="Not your dish")
+
+        # Parse pickup_coordinates if provided
+        if pickup_coordinates is not None:
+            try:
+                import json
+                coordinates = json.loads(pickup_coordinates) if pickup_coordinates else None
+                if coordinates and (not isinstance(coordinates, dict) or 'latitude' not in coordinates or 'longitude' not in coordinates):
+                    raise ValueError("Invalid coordinates format")
+                dish.pickup_coordinates = coordinates
+            except (json.JSONDecodeError, ValueError):
+                raise HTTPException(status_code=400, detail="Invalid pickup_coordinates format")
 
         if name is not None:
             dish.name = name

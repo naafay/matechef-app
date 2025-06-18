@@ -2,6 +2,7 @@
 
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy.types import JSON
 
 class UserFavoriteLink(SQLModel, table=True):
     user_id: Optional[int] = Field(
@@ -57,5 +58,6 @@ class Dish(SQLModel, table=True):
     pickup_available: bool = Field(default=True)
     delivery_available: bool = Field(default=False)
     pickup_location: Optional[str] = Field(default=None)
+    pickup_coordinates: Optional[dict] = Field(default=None, sa_type=JSON)  # Store lat/lng as JSON in TEXT column for SQLite
 
     chef: Optional[Chef] = Relationship(back_populates="dishes")

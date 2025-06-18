@@ -50,6 +50,7 @@ class DishCreate(SQLModel):
     pickup_available: Optional[bool] = True
     delivery_available: Optional[bool] = False
     pickup_location: Optional[str] = None
+    pickup_coordinates: Optional[dict] = None  # e.g., {"latitude": float, "longitude": float}
 
 class DishRead(SQLModel):
     id: int
@@ -63,6 +64,7 @@ class DishRead(SQLModel):
     pickup_available: Optional[bool] = True
     delivery_available: Optional[bool] = False
     pickup_location: Optional[str] = None
+    pickup_coordinates: Optional[dict] = None  # e.g., {"latitude": float, "longitude": float}
 
     class Config:
         from_attributes = True
